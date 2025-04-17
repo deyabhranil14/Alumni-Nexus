@@ -52,6 +52,15 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				rajasthan: {
+					blue: '#1E40AF',
+					saffron: '#F59E0B',
+					turquoise: '#14B8A6',
+					sand: '#F5F5DC',
+					maroon: '#800000',
+					coral: '#FF7F50',
+					gold: '#FFD700',
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
