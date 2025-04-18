@@ -43,7 +43,7 @@ export type User = {
 };
 
 // Mentorship types
-export type MentorshipStatus = 'pending' | 'active' | 'completed' | 'rejected';
+export type MentorshipStatus = 'pending' | 'active' | 'completed' | 'rejected' | 'cancelled';
 
 export type Mentorship = {
   id: string;

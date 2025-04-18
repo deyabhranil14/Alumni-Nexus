@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import MentorshipRequest from "@/components/mentorship/MentorshipRequest";
-import { Mentorship, User } from "@/types";
+import { Mentorship, User, UserRole, MentorshipStatus } from "@/types";
 
 interface MentorshipWithUser extends Mentorship {
   mentor?: User;
@@ -51,7 +51,7 @@ export default function MentorshipPage() {
               id: mentorship.id,
               mentorId: mentorship.mentor_id,
               menteeId: mentorship.mentee_id,
-              status: mentorship.status,
+              status: mentorship.status as MentorshipStatus, // Cast to MentorshipStatus type
               startDate: mentorship.start_date,
               endDate: mentorship.end_date,
               goals: mentorship.goals,
@@ -61,7 +61,7 @@ export default function MentorshipPage() {
                 name: mentorRes.data.name,
                 email: mentorRes.data.email,
                 profileImage: mentorRes.data.profile_image,
-                role: mentorRes.data.role,
+                role: mentorRes.data.role as UserRole, // Cast to UserRole type
                 joinDate: mentorRes.data.join_date,
                 education: [],
                 experience: [],
@@ -73,7 +73,7 @@ export default function MentorshipPage() {
                 name: menteeRes.data.name,
                 email: menteeRes.data.email,
                 profileImage: menteeRes.data.profile_image,
-                role: menteeRes.data.role,
+                role: menteeRes.data.role as UserRole, // Cast to UserRole type
                 joinDate: menteeRes.data.join_date,
                 education: [],
                 experience: [],

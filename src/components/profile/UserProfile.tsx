@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Pencil, MapPin, Calendar, Mail, Briefcase, GraduationCap, Star } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { User, UserEducation, UserExperience, UserSkill } from "@/types";
+import { User, UserEducation, UserExperience, UserSkill, UserRole } from "@/types";
 
 export default function UserProfile() {
   const { userId } = useParams<{ userId: string }>();
@@ -79,7 +79,7 @@ export default function UserProfile() {
         // Transform data to match our types
         const userProfile: User = {
           id: userData.id,
-          role: userData.role,
+          role: userData.role as UserRole, // Cast to UserRole type
           name: userData.name,
           email: userData.email,
           profileImage: userData.profile_image,
@@ -94,9 +94,37 @@ export default function UserProfile() {
         };
         
         setProfileUser(userProfile);
-        setEducation(educationData || []);
-        setExperience(experienceData || []);
-        setSkills(skillsData || []);
+        
+        // Transform education data to match UserEducation type
+        const transformedEducation: UserEducation[] = educationData ? educationData.map(edu => ({
+          degree: edu.degree,
+          institution: edu.institution,
+          fieldOfStudy: edu.field_of_study,
+          startYear: edu.start_year,
+          endYear: edu.end_year,
+          isOngoing: edu.is_ongoing
+        })) : [];
+        
+        // Transform experience data to match UserExperience type
+        const transformedExperience: UserExperience[] = experienceData ? experienceData.map(exp => ({
+          title: exp.title,
+          company: exp.company,
+          location: exp.location,
+          startDate: exp.start_date,
+          endDate: exp.end_date,
+          isOngoing: exp.is_ongoing,
+          description: exp.description || ""
+        })) : [];
+        
+        // Transform skills data to match UserSkill type 
+        const transformedSkills: UserSkill[] = skillsData ? skillsData.map(skill => ({
+          name: skill.name,
+          level: skill.level as "beginner" | "intermediate" | "advanced" | "expert" // Cast to specific allowed values
+        })) : [];
+        
+        setEducation(transformedEducation);
+        setExperience(transformedExperience);
+        setSkills(transformedSkills);
       } catch (err) {
         console.error("Error fetching profile:", err);
         setError(err instanceof Error ? err.message : 'Failed to load profile');
