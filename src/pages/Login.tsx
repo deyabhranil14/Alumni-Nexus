@@ -1,14 +1,61 @@
 
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
+import { sendPasswordResetEmail } from "@/lib/auth";
 
 export function Login() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const { success } = await login({ email, password });
+      if (success) {
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePhoneLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    toast.error("Phone login is not implemented yet");
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error("Please enter your email address first");
+      return;
+    }
+    
+    try {
+      await sendPasswordResetEmail(email);
+      toast.success("Password reset email sent. Please check your inbox.");
+    } catch (error) {
+      toast.error("Failed to send password reset email");
+      console.error(error);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 py-12 px-4">
       <Card className="w-full max-w-md shadow-lg">
@@ -26,13 +73,15 @@ export function Login() {
             </TabsList>
             
             <TabsContent value="email">
-              <form>
+              <form onSubmit={handleEmailLogin}>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
                       type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       placeholder="name@example.com"
                       required
                     />
@@ -40,43 +89,62 @@ export function Login() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password">Password</Label>
-                      <Link 
-                        to="/forgot-password" 
+                      <button 
+                        type="button"
+                        onClick={handleForgotPassword}
                         className="text-xs text-rajasthan-blue hover:underline"
                       >
                         Forgot password?
-                      </Link>
+                      </button>
                     </div>
                     <Input
                       id="password"
                       type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       required
                     />
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox id="remember" />
+                    <Checkbox 
+                      id="remember" 
+                      checked={rememberMe}
+                      onCheckedChange={(checked) => setRememberMe(checked === true)}
+                    />
                     <Label htmlFor="remember" className="text-sm">Remember me for 30 days</Label>
                   </div>
-                  <Button className="w-full bg-rajasthan-blue hover:bg-rajasthan-blue/90">Sign In</Button>
+                  <Button 
+                    className="w-full bg-rajasthan-blue hover:bg-rajasthan-blue/90" 
+                    disabled={loading}
+                    type="submit"
+                  >
+                    {loading ? "Signing in..." : "Sign In"}
+                  </Button>
                 </div>
               </form>
             </TabsContent>
             
             <TabsContent value="phone">
-              <form>
+              <form onSubmit={handlePhoneLogin}>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
                     <Input
                       id="phone"
                       type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
                       placeholder="+91 9876543210"
                       required
                     />
                   </div>
-                  <Button className="w-full bg-rajasthan-blue hover:bg-rajasthan-blue/90">
-                    Send OTP
+                  <Button 
+                    className="w-full bg-rajasthan-blue hover:bg-rajasthan-blue/90"
+                    disabled={loading}
+                    type="submit"
+                  >
+                    {loading ? "Sending..." : "Send OTP"}
                   </Button>
                 </div>
               </form>
@@ -93,7 +161,7 @@ export function Login() {
           </div>
           
           <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline">
+            <Button variant="outline" type="button" disabled={loading}>
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -115,7 +183,7 @@ export function Login() {
               </svg>
               Google
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" type="button" disabled={loading}>
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                 <path
                   d="M9.37,17.51c-3.52,0-6.37-2.89-6.37-6.46c0-3.56,2.85-6.46,6.37-6.46c1.69,0,3.19,0.65,4.33,1.71l-1.77,1.81C11,7.38,10.22,7.03,9.37,7.03c-2.18,0-3.96,1.8-3.96,4.03c0,2.23,1.78,4.03,3.96,4.03c1.21,0,2.08-0.42,2.73-1.07c0.58-0.59,0.93-1.39,1.05-2.44H9.37V9.91h5.23c0.07,0.34,0.11,0.73,0.11,1.17c0,1.19-0.33,2.65-1.4,3.69C12.31,16.04,11.07,17.51,9.37,17.51z M20.71,12.01c0.65,0,1.17-0.53,1.17-1.18C21.88,10.18,21.35,9.66,20.71,9.66C20.06,9.66,19.54,10.18,19.54,10.83c0,0,0,0,0,0C19.54,11.48,20.06,12.01,20.71,12.01z M15.76,12.01c0.65,0,1.17-0.53,1.17-1.18c0-0.65-0.53-1.17-1.17-1.17c-0.65,0-1.17,0.53-1.17,1.17c0,0,0,0,0,0C14.58,11.48,15.11,12.01,15.76,12.01z"
