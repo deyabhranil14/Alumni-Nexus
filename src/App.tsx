@@ -2,12 +2,12 @@
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Home } from "@/pages/Home";
-import { Index } from "@/pages/Index";
-import { NotFound } from "@/pages/NotFound";
-import { Login } from "@/pages/Login";
-import { Register } from "@/pages/Register";
-import { Dashboard } from "@/pages/Dashboard";
+import Home from "@/pages/Home";
+import Index from "@/pages/Index";
+import NotFound from "@/pages/NotFound";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import Dashboard from "@/pages/Dashboard";
 import { AuthProvider } from "@/context/AuthContext";
 import "./App.css";
 

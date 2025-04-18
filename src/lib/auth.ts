@@ -117,13 +117,32 @@ export const getCurrentUser = async () => {
     if (!user) return null;
     
     // Get the user profile data
-    const { data: profile } = await supabase
+    const { data: profileData } = await supabase
       .from('users')
       .select('*')
       .eq('id', user.id)
       .single();
       
-    return profile as User;
+    if (!profileData) return null;
+    
+    // Transform database user to match our User type
+    const userProfile: User = {
+      id: profileData.id,
+      role: profileData.role as UserRole,
+      name: profileData.name,
+      email: profileData.email,
+      profileImage: profileData.profile_image,
+      coverImage: profileData.cover_image,
+      location: profileData.location || undefined,
+      bio: profileData.bio || undefined,
+      joinDate: profileData.join_date,
+      education: [], // These will need to be fetched separately if needed
+      experience: [],
+      skills: [],
+      interests: []
+    };
+      
+    return userProfile;
   } catch (error) {
     console.error("Error fetching current user:", error);
     return null;
