@@ -8,6 +8,8 @@ import NotFound from "@/pages/NotFound";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Dashboard from "@/pages/Dashboard";
+import Profile from "@/pages/Profile";
+import Mentorship from "@/pages/Mentorship";
 import { AuthProvider } from "@/context/AuthContext";
 import "./App.css";
 
@@ -23,6 +25,9 @@ function App() {
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="profile/:userId" element={<Profile />} />
+            <Route path="mentorship" element={<Mentorship />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

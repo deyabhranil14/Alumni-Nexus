@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Header from "./Header";
 import Footer from "./Footer";
@@ -14,13 +14,20 @@ import {
   DrawerClose,
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
-import { Bot } from "lucide-react";
+import { Bot, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface AIChatMessage {
+  query: string;
+  response: string;
+}
 
 export function MainLayout() {
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const [aiQuery, setAiQuery] = useState("");
-  const [aiResponses, setAiResponses] = useState<Array<{query: string, response: string}>>([]);
+  const [aiResponses, setAiResponses] = useState<AIChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAIAssistantToggle = () => {
     setIsAIAssistantOpen(!isAIAssistantOpen);
@@ -32,28 +39,34 @@ export function MainLayout() {
     if (!aiQuery.trim() || isProcessing) return;
     
     setIsProcessing(true);
+    setError(null);
     
-    // Placeholder for AI processing
-    // This will be replaced with actual Supabase Edge Function call
-    // that connects to an AI service like OpenAI
-    setTimeout(() => {
-      const demoResponses = [
-        "I can help you connect with alumni in your field of interest.",
-        "Based on your profile, I recommend exploring the upcoming Tech Career Expo event.",
-        "Would you like me to suggest mentors specializing in software development?",
-        "I've found 3 discussion threads related to your recent query about internships."
-      ];
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-assistant', {
+        body: {
+          query: aiQuery,
+          history: aiResponses.slice(-5) // Send last 5 exchanges for context
+        },
+      });
+
+      if (error) throw error;
       
-      const randomResponse = demoResponses[Math.floor(Math.random() * demoResponses.length)];
+      if (!data.response) {
+        throw new Error('No response received from AI');
+      }
       
       setAiResponses(prev => [...prev, {
         query: aiQuery,
-        response: randomResponse
+        response: data.response
       }]);
       
+    } catch (err) {
+      console.error("AI Assistant error:", err);
+      setError(err instanceof Error ? err.message : 'Failed to get AI response');
+    } finally {
       setAiQuery("");
       setIsProcessing(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -98,7 +111,7 @@ export function MainLayout() {
                     </div>
                     <div className="bg-rajasthan-blue/10 p-3 rounded-lg text-sm">
                       <p className="font-medium text-rajasthan-blue">Nexus AI:</p>
-                      <p>{item.response}</p>
+                      <p className="whitespace-pre-wrap">{item.response}</p>
                     </div>
                   </div>
                 ))}
@@ -107,6 +120,13 @@ export function MainLayout() {
               <div className="text-center py-8 text-muted-foreground">
                 <Bot className="h-12 w-12 mx-auto mb-2 opacity-50" />
                 <p>Ask me about connecting with alumni, finding mentors, or discovering events.</p>
+              </div>
+            )}
+            
+            {error && (
+              <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                <p className="font-medium">Error:</p>
+                <p>{error}</p>
               </div>
             )}
           </div>
@@ -121,7 +141,11 @@ export function MainLayout() {
                 disabled={isProcessing}
               />
               <Button type="submit" disabled={isProcessing}>
-                {isProcessing ? "Thinking..." : "Ask"}
+                {isProcessing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Ask"
+                )}
               </Button>
             </form>
             <DrawerClose asChild>
