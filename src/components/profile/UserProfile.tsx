@@ -1,15 +1,14 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Pencil, MapPin, Calendar, Mail, Briefcase, GraduationCap, Star } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { User, UserEducation, UserExperience, UserSkill, UserRole } from "@/types";
+import { ProfileHeader } from "./ProfileHeader";
+import { ProfileEducation } from "./ProfileEducation";
+import { ProfileExperience } from "./ProfileExperience";
+import { ProfileSkills } from "./ProfileSkills";
 
 export default function UserProfile() {
   const { userId } = useParams<{ userId: string }>();
@@ -23,7 +22,6 @@ export default function UserProfile() {
   
   const isOwnProfile = currentUser?.id === (userId || currentUser?.id);
   
-  // Fetch user profile data
   useEffect(() => {
     const targetUserId = userId || currentUser?.id;
     
@@ -37,7 +35,6 @@ export default function UserProfile() {
       setError(null);
       
       try {
-        // Fetch user profile
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select('*')
@@ -52,7 +49,6 @@ export default function UserProfile() {
           return;
         }
         
-        // Fetch education
         const { data: educationData, error: educationError } = await supabase
           .from('user_education')
           .select('*')
@@ -60,7 +56,6 @@ export default function UserProfile() {
           
         if (educationError) throw educationError;
         
-        // Fetch experience
         const { data: experienceData, error: experienceError } = await supabase
           .from('user_experience')
           .select('*')
@@ -68,7 +63,6 @@ export default function UserProfile() {
           
         if (experienceError) throw experienceError;
         
-        // Fetch skills
         const { data: skillsData, error: skillsError } = await supabase
           .from('user_skills')
           .select('*')
@@ -76,10 +70,9 @@ export default function UserProfile() {
           
         if (skillsError) throw skillsError;
         
-        // Transform data to match our types
         const userProfile: User = {
           id: userData.id,
-          role: userData.role as UserRole, // Cast to UserRole type
+          role: userData.role as UserRole,
           name: userData.name,
           email: userData.email,
           profileImage: userData.profile_image,
@@ -95,7 +88,6 @@ export default function UserProfile() {
         
         setProfileUser(userProfile);
         
-        // Transform education data to match UserEducation type
         const transformedEducation: UserEducation[] = educationData ? educationData.map(edu => ({
           degree: edu.degree,
           institution: edu.institution,
@@ -105,7 +97,6 @@ export default function UserProfile() {
           isOngoing: edu.is_ongoing
         })) : [];
         
-        // Transform experience data to match UserExperience type
         const transformedExperience: UserExperience[] = experienceData ? experienceData.map(exp => ({
           title: exp.title,
           company: exp.company,
@@ -116,10 +107,9 @@ export default function UserProfile() {
           description: exp.description || ""
         })) : [];
         
-        // Transform skills data to match UserSkill type 
         const transformedSkills: UserSkill[] = skillsData ? skillsData.map(skill => ({
           name: skill.name,
-          level: skill.level as "beginner" | "intermediate" | "advanced" | "expert" // Cast to specific allowed values
+          level: skill.level as "beginner" | "intermediate" | "advanced" | "expert"
         })) : [];
         
         setEducation(transformedEducation);
@@ -160,71 +150,10 @@ export default function UserProfile() {
 
   return (
     <div className="container py-8">
-      {/* Profile Header */}
       <Card className="border-none shadow-sm mb-8">
-        <div className="relative h-48 md:h-64 bg-gradient-to-r from-rajasthan-blue to-rajasthan-turquoise rounded-t-xl">
-          {profileUser.coverImage && (
-            <img 
-              src={profileUser.coverImage} 
-              alt="Cover"
-              className="w-full h-full object-cover rounded-t-xl"
-            />
-          )}
-          
-          {isOwnProfile && (
-            <Button 
-              size="sm" 
-              variant="secondary"
-              className="absolute top-4 right-4"
-            >
-              <Pencil className="h-4 w-4 mr-1" />
-              Edit Profile
-            </Button>
-          )}
-          
-          <div className="absolute -bottom-12 left-8">
-            <Avatar className="h-24 w-24 border-4 border-background">
-              <AvatarImage src={profileUser.profileImage} />
-              <AvatarFallback className="text-xl">{profileUser.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-          </div>
-        </div>
+        <ProfileHeader user={profileUser} isOwnProfile={isOwnProfile} />
         
         <CardContent className="pt-16 pb-6">
-          <div className="flex flex-wrap justify-between items-start">
-            <div>
-              <h1 className="text-2xl font-bold">{profileUser.name}</h1>
-              
-              <div className="text-muted-foreground space-y-1 mt-2">
-                {profileUser.location && (
-                  <div className="flex items-center">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    <span>{profileUser.location}</span>
-                  </div>
-                )}
-                
-                <div className="flex items-center">
-                  <Mail className="h-4 w-4 mr-1" />
-                  <span>{profileUser.email}</span>
-                </div>
-                
-                <div className="flex items-center">
-                  <Calendar className="h-4 w-4 mr-1" />
-                  <span>Joined {new Date(profileUser.joinDate).toLocaleDateString()}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-4 md:mt-0">
-              {!isOwnProfile && (
-                <div className="flex gap-2">
-                  <Button>Connect</Button>
-                  <Button variant="outline">Send Message</Button>
-                </div>
-              )}
-            </div>
-          </div>
-          
           {profileUser.bio && (
             <div className="mt-6">
               <h3 className="text-lg font-medium mb-2">About</h3>
@@ -234,7 +163,6 @@ export default function UserProfile() {
         </CardContent>
       </Card>
       
-      {/* Profile Tabs */}
       <Tabs defaultValue="experience" className="mt-8">
         <TabsList className="mb-6">
           <TabsTrigger value="experience">Experience</TabsTrigger>
@@ -243,160 +171,15 @@ export default function UserProfile() {
         </TabsList>
         
         <TabsContent value="experience">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <Briefcase className="h-5 w-5 mr-2" />
-                  Experience
-                </div>
-                {isOwnProfile && (
-                  <Button size="sm" variant="outline">
-                    <Pencil className="h-4 w-4 mr-1" />
-                    Add Experience
-                  </Button>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {experience.length > 0 ? (
-                <div className="space-y-6">
-                  {experience.map((exp, index) => (
-                    <div key={index}>
-                      {index > 0 && <Separator className="my-6" />}
-                      <div className="flex justify-between">
-                        <div>
-                          <h3 className="font-semibold">{exp.title}</h3>
-                          <p className="text-muted-foreground">{exp.company}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(exp.startDate).toLocaleDateString()} - 
-                            {exp.isOngoing ? ' Present' : ` ${new Date(exp.endDate!).toLocaleDateString()}`}
-                          </p>
-                          {exp.description && (
-                            <p className="mt-2 text-sm">{exp.description}</p>
-                          )}
-                        </div>
-                        {isOwnProfile && (
-                          <Button variant="ghost" size="icon">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-10">
-                  <Briefcase className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-                  <p className="text-muted-foreground">No experience added yet</p>
-                  {isOwnProfile && (
-                    <Button variant="outline" className="mt-4">
-                      Add Experience
-                    </Button>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ProfileExperience experience={experience} isOwnProfile={isOwnProfile} />
         </TabsContent>
         
         <TabsContent value="education">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <GraduationCap className="h-5 w-5 mr-2" />
-                  Education
-                </div>
-                {isOwnProfile && (
-                  <Button size="sm" variant="outline">
-                    <Pencil className="h-4 w-4 mr-1" />
-                    Add Education
-                  </Button>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {education.length > 0 ? (
-                <div className="space-y-6">
-                  {education.map((edu, index) => (
-                    <div key={index}>
-                      {index > 0 && <Separator className="my-6" />}
-                      <div className="flex justify-between">
-                        <div>
-                          <h3 className="font-semibold">{edu.degree}</h3>
-                          <p className="text-muted-foreground">{edu.institution}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {edu.startYear} - {edu.isOngoing ? 'Present' : edu.endYear}
-                          </p>
-                          <p className="text-sm">{edu.fieldOfStudy}</p>
-                        </div>
-                        {isOwnProfile && (
-                          <Button variant="ghost" size="icon">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-10">
-                  <GraduationCap className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-                  <p className="text-muted-foreground">No education added yet</p>
-                  {isOwnProfile && (
-                    <Button variant="outline" className="mt-4">
-                      Add Education
-                    </Button>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ProfileEducation education={education} isOwnProfile={isOwnProfile} />
         </TabsContent>
         
         <TabsContent value="skills">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <Star className="h-5 w-5 mr-2" />
-                  Skills
-                </div>
-                {isOwnProfile && (
-                  <Button size="sm" variant="outline">
-                    <Pencil className="h-4 w-4 mr-1" />
-                    Add Skills
-                  </Button>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {skills.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {skills.map((skill, index) => (
-                    <div 
-                      key={index}
-                      className="px-3 py-1 rounded-full bg-muted text-sm flex items-center gap-1"
-                    >
-                      {skill.name}
-                      <span className="text-xs text-muted-foreground">({skill.level})</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-10">
-                  <Star className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-                  <p className="text-muted-foreground">No skills added yet</p>
-                  {isOwnProfile && (
-                    <Button variant="outline" className="mt-4">
-                      Add Skills
-                    </Button>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ProfileSkills skills={skills} isOwnProfile={isOwnProfile} />
         </TabsContent>
       </Tabs>
     </div>
