@@ -13,7 +13,7 @@ interface AuthContextType {
   login: (data: AuthFormData) => Promise<{ success: boolean; error?: any }>;
   register: (data: RegisterFormData) => Promise<{ success: boolean; error?: any }>;
   logout: () => Promise<{ success: boolean; error?: any }>;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<AppUser | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -92,12 +92,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return userProfile;
     } catch (error) {
       console.error("Error refreshing user profile:", error);
-      throw error;
+      setUser(null);
+      return null;
     }
   };
 
   const register = async (data: RegisterFormData) => {
-    console.log("Registering new user");
+    console.log("Registering new user with data:", { ...data, password: '***hidden***' });
     try {
       const result = await registerUser(data);
       if (result.success) {

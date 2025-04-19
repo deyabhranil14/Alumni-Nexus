@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,8 +16,19 @@ import {
   MapPin,
   TrendingUp
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { User } from "@/types";
 
 export function Dashboard() {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    if (user) {
+      setLoading(false);
+    }
+  }, [user]);
+
   // Mock data - in a real app this would come from an API
   const upcomingEvents = [
     {
@@ -85,6 +95,17 @@ export function Dashboard() {
     }
   ];
   
+  if (loading) {
+    return (
+      <div className="container py-8 min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-rajasthan-blue border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-lg text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="bg-muted/30 min-h-screen">
       <div className="container py-8">
@@ -94,7 +115,7 @@ export function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
-                  <h1 className="text-2xl font-bold">Welcome back, Vikram!</h1>
+                  <h1 className="text-2xl font-bold">Welcome back, {user?.name || "User"}!</h1>
                   <p className="opacity-90">Your alumni network is growing. You have 5 new connection requests.</p>
                 </div>
                 <div className="hidden md:block">
@@ -244,33 +265,39 @@ export function Dashboard() {
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center text-center">
                   <Avatar className="h-20 w-20 mb-4">
-                    <AvatarImage src="https://i.pravatar.cc/150?img=12" />
-                    <AvatarFallback>VT</AvatarFallback>
+                    <AvatarImage src={user?.profileImage} />
+                    <AvatarFallback>{user?.name ? user.name.charAt(0) : 'U'}</AvatarFallback>
                   </Avatar>
-                  <h3 className="font-semibold text-xl">Vikram Thakur</h3>
-                  <p className="text-sm text-muted-foreground">Software Engineer at Google</p>
-                  <div className="flex items-center text-xs text-muted-foreground mt-1">
-                    <MapPin className="h-3 w-3 mr-1" />
-                    <span>Jaipur, Rajasthan</span>
-                  </div>
+                  <h3 className="font-semibold text-xl">{user?.name || "User"}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {user?.role === 'alumni' && user?.experience && user?.experience[0] ? 
+                      `${user.experience[0].title} at ${user.experience[0].company}` : 
+                      (user?.role === 'student' ? "Student" : "User")}
+                  </p>
+                  {user?.location && (
+                    <div className="flex items-center text-xs text-muted-foreground mt-1">
+                      <MapPin className="h-3 w-3 mr-1" />
+                      <span>{user.location}</span>
+                    </div>
+                  )}
                   <div className="border-t border-b w-full my-4 py-3">
                     <div className="flex justify-around">
                       <div className="text-center">
-                        <p className="font-semibold">124</p>
+                        <p className="font-semibold">0</p>
                         <p className="text-xs text-muted-foreground">Connections</p>
                       </div>
                       <div className="text-center">
-                        <p className="font-semibold">8</p>
+                        <p className="font-semibold">0</p>
                         <p className="text-xs text-muted-foreground">Mentees</p>
                       </div>
                       <div className="text-center">
-                        <p className="font-semibold">12</p>
+                        <p className="font-semibold">0</p>
                         <p className="text-xs text-muted-foreground">Events</p>
                       </div>
                     </div>
                   </div>
                   <Button className="w-full" variant="outline" asChild>
-                    <Link to="/profile">View Profile</Link>
+                    <Link to={`/profile/${user?.id}`}>View Profile</Link>
                   </Button>
                 </div>
               </CardContent>

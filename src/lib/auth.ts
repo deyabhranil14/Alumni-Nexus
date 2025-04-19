@@ -44,21 +44,60 @@ export const registerUser = async (data: RegisterFormData) => {
       console.error("Auth error during registration:", authError);
       throw authError;
     }
+    
     if (!authData.user) {
       console.error("Registration failed: No user returned");
       throw new Error("Registration failed");
     }
 
-    console.log("User registered successfully, uploading profile image if provided");
+    console.log("Auth signup successful:", authData.user.id);
     
-    // The user is created in the users table via the database trigger
+    // Step 2: Insert or update user profile in the public users table
+    const userProfile = {
+      id: authData.user.id,
+      name: data.name || '',
+      email: data.email,
+      role: data.role,
+      profile_image: '',
+      cover_image: '',
+      location: '',
+      bio: data.bio || '',
+      join_date: new Date().toISOString()
+    };
     
+    console.log("Creating user profile:", { ...userProfile, id: "***hidden***" });
+    
+    const { error: profileError } = await supabase
+      .from('users')
+      .insert([userProfile]);
+    
+    if (profileError) {
+      console.error("Error creating user profile:", profileError);
+      // We'll continue despite this error since the auth user is created
+      toast.error("User created but profile data could not be saved completely");
+    } else {
+      console.log("User profile created successfully");
+    }
+
     // Upload profile image if provided
     if (data.profileImage) {
       const fileExt = data.profileImage.name.split('.').pop();
       const fileName = `${authData.user.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       
       try {
+        console.log("Uploading profile image");
+        
+        const { data: bucketData, error: bucketError } = await supabase
+          .storage.getBucket('alumni_media');
+          
+        if (bucketError && bucketError.message.includes('does not exist')) {
+          console.log("Creating alumni_media bucket");
+          await supabase.storage.createBucket('alumni_media', {
+            public: true,
+            fileSizeLimit: 1024 * 1024 * 2 // 2MB
+          });
+        }
+        
         const { error: uploadError } = await supabase.storage
           .from('alumni_media')
           .upload(`profiles/${fileName}`, data.profileImage);
@@ -73,17 +112,74 @@ export const registerUser = async (data: RegisterFormData) => {
             .getPublicUrl(`profiles/${fileName}`);
             
           // Update the user profile with the image URL
-          await supabase
-            .from('users')
-            .update({ profile_image: imageData.publicUrl })
-            .eq('id', authData.user.id);
-            
-          console.log("Profile image uploaded successfully");
+          if (imageData?.publicUrl) {
+            console.log("Updating user profile with image URL");
+            await supabase
+              .from('users')
+              .update({ profile_image: imageData.publicUrl })
+              .eq('id', authData.user.id);
+              
+            console.log("Profile image uploaded successfully");
+          }
         }
       } catch (imageError) {
         console.error("Image processing error:", imageError);
         // Continue with registration even if image processing fails
       }
+    }
+    
+    // Store additional user data based on role
+    try {
+      if (data.role === 'student' && data.institution) {
+        console.log("Adding student education data");
+        const education = {
+          user_id: authData.user.id,
+          degree: data.course || '',
+          institution: data.institution || '',
+          field_of_study: data.course || '',
+          start_year: data.enrollmentYear ? parseInt(data.enrollmentYear) : new Date().getFullYear(),
+          end_year: data.graduationYear ? parseInt(data.graduationYear) : null,
+          is_ongoing: data.graduationYear ? false : true,
+        };
+        
+        await supabase
+          .from('user_education')
+          .insert([education]);
+      }
+      
+      if (data.role === 'alumni' && data.currentCompany) {
+        console.log("Adding alumni experience data");
+        const experience = {
+          user_id: authData.user.id,
+          title: data.designation || 'Professional',
+          company: data.currentCompany || '',
+          location: '',
+          start_date: new Date().toISOString().split('T')[0],
+          end_date: null,
+          is_ongoing: true,
+          description: ''
+        };
+        
+        await supabase
+          .from('user_experience')
+          .insert([experience]);
+      }
+      
+      // Store interests
+      if (data.interests && data.interests.length > 0) {
+        console.log("Adding user interests");
+        const interestsEntries = data.interests.map(interest => ({
+          user_id: authData.user.id,
+          interests: interest
+        }));
+        
+        await supabase
+          .from('user_interests')
+          .insert(interestsEntries);
+      }
+    } catch (additionalDataError) {
+      console.error("Error saving additional user data:", additionalDataError);
+      // Continue with registration even if additional data fails
     }
     
     toast.success("Registration successful! Please check your email to verify your account.");
@@ -167,9 +263,46 @@ export const getCurrentUser = async () => {
       
       if (profileError.code === 'PGRST116') {
         console.log("User record not found in profiles table");
+        
+        // Try to create the profile from auth data if it doesn't exist
+        const { data: authUserData } = await supabase.auth.getUser();
+        
+        if (authUserData?.user) {
+          const userData = authUserData.user;
+          const userMeta = userData.user_metadata || {};
+          
+          // Create basic profile
+          const newProfile = {
+            id: userData.id,
+            name: userMeta.name || userData.email?.split('@')[0] || 'User',
+            email: userData.email || '',
+            role: userMeta.role || 'student',
+            profile_image: '',
+            cover_image: '',
+            location: '',
+            bio: '',
+            join_date: new Date().toISOString()
+          };
+          
+          const { data: newProfileData, error: newProfileError } = await supabase
+            .from('users')
+            .insert([newProfile])
+            .select()
+            .single();
+            
+          if (newProfileError) {
+            console.error("Error creating missing profile:", newProfileError);
+            return null;
+          }
+          
+          console.log("Created missing user profile");
+          profileData = newProfileData;
+        }
       }
       
-      return null;
+      if (!profileData) {
+        return null;
+      }
     }
       
     if (!profileData) {
@@ -178,6 +311,13 @@ export const getCurrentUser = async () => {
     }
     
     console.log("User profile data retrieved successfully");
+    
+    // Fetch education, experience and skills data
+    const [educationResponse, experienceResponse, skillsResponse] = await Promise.all([
+      supabase.from('user_education').select('*').eq('user_id', user.id),
+      supabase.from('user_experience').select('*').eq('user_id', user.id),
+      supabase.from('user_skills').select('*').eq('user_id', user.id)
+    ]);
     
     // Transform database user to match our User type
     const userProfile: User = {
@@ -190,9 +330,27 @@ export const getCurrentUser = async () => {
       location: profileData.location || undefined,
       bio: profileData.bio || undefined,
       joinDate: profileData.join_date,
-      education: [], // These will need to be fetched separately if needed
-      experience: [],
-      skills: [],
+      education: educationResponse.data ? educationResponse.data.map(edu => ({
+        degree: edu.degree,
+        institution: edu.institution,
+        fieldOfStudy: edu.field_of_study,
+        startYear: edu.start_year,
+        endYear: edu.end_year,
+        isOngoing: edu.is_ongoing
+      })) : [],
+      experience: experienceResponse.data ? experienceResponse.data.map(exp => ({
+        title: exp.title,
+        company: exp.company,
+        location: exp.location,
+        startDate: exp.start_date,
+        endDate: exp.end_date,
+        isOngoing: exp.is_ongoing || false,
+        description: exp.description || ""
+      })) : [],
+      skills: skillsResponse.data ? skillsResponse.data.map(skill => ({
+        name: skill.name,
+        level: skill.level as "beginner" | "intermediate" | "advanced" | "expert"
+      })) : [],
       interests: []
     };
       
