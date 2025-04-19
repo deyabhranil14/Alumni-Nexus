@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import Header from "./Header";
 import Footer from "./Footer";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Bot, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 interface AIChatMessage {
   query: string;
@@ -24,11 +25,42 @@ interface AIChatMessage {
 }
 
 export function MainLayout() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const [aiQuery, setAiQuery] = useState("");
   const [aiResponses, setAiResponses] = useState<AIChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiAssistantInitialized, setAiAssistantInitialized] = useState(false);
+
+  useEffect(() => {
+    // Check if edge function can be reached when component mounts
+    const checkAiAssistant = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('ai-assistant', {
+          body: {
+            query: "Hello",
+            history: []
+          },
+        });
+        
+        console.log("AI assistant check:", data ? "successful" : "failed");
+        if (error) {
+          console.error("AI assistant check error:", error);
+          setError("AI assistant is currently unavailable. Please try again later.");
+        } else {
+          setAiAssistantInitialized(true);
+        }
+      } catch (err) {
+        console.error("AI Assistant initialization error:", err);
+        setError("Failed to initialize AI assistant");
+      }
+    };
+    
+    // Only run this check once on component mount
+    checkAiAssistant();
+  }, []);
 
   const handleAIAssistantToggle = () => {
     setIsAIAssistantOpen(!isAIAssistantOpen);
@@ -57,7 +89,7 @@ export function MainLayout() {
         },
       });
 
-      console.log("AI assistant response:", data, "Error:", error);
+      console.log("AI assistant response received:", !!data, "Error:", error);
       
       if (error) {
         throw new Error(`Function error: ${error.message}`);
@@ -103,6 +135,7 @@ export function MainLayout() {
         <Button 
           onClick={handleAIAssistantToggle}
           className="h-14 w-14 rounded-full bg-rajasthan-blue hover:bg-rajasthan-blue/90 shadow-lg"
+          disabled={!aiAssistantInitialized && !isAIAssistantOpen}
         >
           <Bot className="h-6 w-6" />
         </Button>

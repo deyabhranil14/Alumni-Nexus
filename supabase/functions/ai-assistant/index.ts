@@ -18,10 +18,21 @@ serve(async (req) => {
     console.log("OpenAI API Key present:", !!openAIApiKey);
     
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key is not configured');
+      throw new Error('OpenAI API key is not configured in Supabase secrets');
     }
 
-    const { query, history } = await req.json();
+    const requestData = await req.json().catch(e => {
+      console.error("Error parsing request JSON:", e);
+      throw new Error("Invalid JSON in request body");
+    });
+    
+    const { query, history } = requestData;
+    
+    if (!query || typeof query !== 'string') {
+      console.error("Invalid query format:", query);
+      throw new Error("Query must be a non-empty string");
+    }
+    
     console.log("Received query:", query);
     console.log("History length:", history?.length || 0);
     
@@ -35,48 +46,64 @@ serve(async (req) => {
     
     // Add conversation history
     if (history && history.length) {
-      history.forEach((item: { query: string, response: string }) => {
-        messages.push({ role: "user", content: item.query });
-        messages.push({ role: "assistant", content: item.response });
+      history.forEach((item) => {
+        if (item && typeof item.query === 'string' && typeof item.response === 'string') {
+          messages.push({ role: "user", content: item.query });
+          messages.push({ role: "assistant", content: item.response });
+        }
       });
     }
     
     // Add the current query
     messages.push({ role: "user", content: query });
     
-    console.log("Sending request to OpenAI API...");
+    console.log("Sending request to OpenAI API with messages length:", messages.length);
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: messages,
-        temperature: 0.7,
-        stream: false,
-      }),
-    });
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: messages,
+          temperature: 0.7,
+          stream: false,
+        }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("OpenAI API error:", errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || JSON.stringify(errorData)}`);
-    }
-
-    const data = await response.json();
-    console.log("OpenAI response received successfully");
-    const aiResponse = data.choices[0].message.content;
-
-    return new Response(
-      JSON.stringify({ response: aiResponse }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
+      if (!response.ok) {
+        const errorData = await response.json().catch(e => ({ error: { message: "Failed to parse error response" }}));
+        console.error("OpenAI API error status:", response.status, "Response:", errorData);
+        throw new Error(`OpenAI API error: ${errorData.error?.message || JSON.stringify(errorData)}`);
       }
-    );
+
+      const data = await response.json().catch(e => {
+        console.error("Error parsing OpenAI response:", e);
+        throw new Error("Failed to parse OpenAI response");
+      });
+      
+      console.log("OpenAI response received successfully");
+      const aiResponse = data.choices?.[0]?.message?.content;
+      
+      if (!aiResponse) {
+        console.error("Missing content in OpenAI response:", data);
+        throw new Error("No valid response content from OpenAI");
+      }
+
+      return new Response(
+        JSON.stringify({ response: aiResponse }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
+    } catch (openaiError) {
+      console.error("OpenAI API call error:", openaiError);
+      throw new Error(`OpenAI API call failed: ${openaiError.message}`);
+    }
   } catch (error) {
     console.error("Error in AI assistant function:", error);
     

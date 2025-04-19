@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
@@ -19,13 +19,33 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 export function Header() {
   const isMobile = useIsMobile();
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false); // This would come from auth context in a real app
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   
-  // Temporary function to toggle login state for demo purposes
-  const toggleLogin = () => setIsLoggedIn(!isLoggedIn);
+  const handleLogout = async () => {
+    try {
+      const result = await logout();
+      if (result.success) {
+        navigate("/");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+  
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
   
   return (
     <header className="sticky top-0 z-50 border-b bg-background">
@@ -67,7 +87,7 @@ export function Header() {
         </div>
         
         <div className="flex items-center gap-3">
-          {!isLoggedIn ? (
+          {!user ? (
             <>
               <Button variant="ghost" asChild>
                 <Link to="/login">Login</Link>
@@ -95,13 +115,13 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src="https://github.com/shadcn.png" alt="@user" />
-                      <AvatarFallback>RK</AvatarFallback>
+                      <AvatarImage src={user.profileImage || undefined} alt={user.name} />
+                      <AvatarFallback>{user.name ? getInitials(user.name) : "U"}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuLabel>{user.name || "My Account"}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to="/dashboard">Dashboard</Link>
@@ -113,7 +133,7 @@ export function Header() {
                     <Link to="/settings">Settings</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={toggleLogin}>
+                  <DropdownMenuItem onClick={handleLogout}>
                     Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
