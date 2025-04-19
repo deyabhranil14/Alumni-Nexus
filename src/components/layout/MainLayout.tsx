@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Bot, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface AIChatMessage {
   query: string;
@@ -41,30 +42,50 @@ export function MainLayout() {
     setIsProcessing(true);
     setError(null);
     
+    // Show the user's query immediately
+    const newQuery = aiQuery.trim();
+    setAiQuery("");
+    
     try {
+      console.log("Calling AI assistant function with query:", newQuery);
+      console.log("Sending history:", aiResponses.slice(-5));
+      
       const { data, error } = await supabase.functions.invoke('ai-assistant', {
         body: {
-          query: aiQuery,
+          query: newQuery,
           history: aiResponses.slice(-5) // Send last 5 exchanges for context
         },
       });
 
-      if (error) throw error;
+      console.log("AI assistant response:", data, "Error:", error);
       
-      if (!data.response) {
+      if (error) {
+        throw new Error(`Function error: ${error.message}`);
+      }
+      
+      if (!data || !data.response) {
         throw new Error('No response received from AI');
       }
       
       setAiResponses(prev => [...prev, {
-        query: aiQuery,
+        query: newQuery,
         response: data.response
       }]);
       
+      toast.success("AI response received");
+      
     } catch (err) {
       console.error("AI Assistant error:", err);
-      setError(err instanceof Error ? err.message : 'Failed to get AI response');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to get AI response';
+      setError(errorMessage);
+      toast.error(`AI Assistant error: ${errorMessage}`);
+      
+      // Add only the user's message when there's an error
+      setAiResponses(prev => [...prev, {
+        query: newQuery,
+        response: `Sorry, I encountered an error: ${errorMessage}`
+      }]);
     } finally {
-      setAiQuery("");
       setIsProcessing(false);
     }
   };

@@ -15,6 +15,7 @@ serve(async (req) => {
 
   try {
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    console.log("OpenAI API Key present:", !!openAIApiKey);
     
     if (!openAIApiKey) {
       throw new Error('OpenAI API key is not configured');
@@ -22,6 +23,7 @@ serve(async (req) => {
 
     const { query, history } = await req.json();
     console.log("Received query:", query);
+    console.log("History length:", history?.length || 0);
     
     // Convert history to the format expected by OpenAI
     const messages = [
@@ -42,7 +44,7 @@ serve(async (req) => {
     // Add the current query
     messages.push({ role: "user", content: query });
     
-    console.log("Sending messages to OpenAI:", JSON.stringify(messages));
+    console.log("Sending request to OpenAI API...");
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -59,14 +61,14 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error("OpenAI API error:", error);
-      throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
+      const errorData = await response.json();
+      console.error("OpenAI API error:", errorData);
+      throw new Error(`OpenAI API error: ${errorData.error?.message || JSON.stringify(errorData)}`);
     }
 
     const data = await response.json();
+    console.log("OpenAI response received successfully");
     const aiResponse = data.choices[0].message.content;
-    console.log("AI response:", aiResponse);
 
     return new Response(
       JSON.stringify({ response: aiResponse }),
