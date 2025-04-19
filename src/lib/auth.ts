@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { User, UserRole } from "@/types";
@@ -262,61 +261,64 @@ export const getCurrentUser = async () => {
       console.error("Error fetching user profile:", profileError);
       
       if (profileError.code === 'PGRST116') {
-        console.log("User record not found in profiles table");
+        console.log("User record not found in profiles table, creating from auth data");
         
-        // Try to create the profile from auth data if it doesn't exist
-        const { data: authUserData } = await supabase.auth.getUser();
+        // Creating the profile from auth data if it doesn't exist
+        const userData = user;
+        const userMeta = userData.user_metadata || {};
         
-        if (authUserData?.user) {
-          const userData = authUserData.user;
-          const userMeta = userData.user_metadata || {};
+        // Create basic profile
+        const newProfile = {
+          id: userData.id,
+          name: userMeta.name || userData.email?.split('@')[0] || 'User',
+          email: userData.email || '',
+          role: userMeta.role || 'student',
+          profile_image: '',
+          cover_image: '',
+          location: '',
+          bio: '',
+          join_date: new Date().toISOString()
+        };
+        
+        console.log("Creating new user profile with data:", {
+          ...newProfile,
+          id: "***hidden***"
+        });
+        
+        const { data: newProfileData, error: newProfileError } = await supabase
+          .from('users')
+          .insert([newProfile])
+          .select()
+          .single();
           
-          // Create basic profile
-          const newProfile = {
-            id: userData.id,
-            name: userMeta.name || userData.email?.split('@')[0] || 'User',
-            email: userData.email || '',
-            role: userMeta.role || 'student',
-            profile_image: '',
-            cover_image: '',
-            location: '',
-            bio: '',
-            join_date: new Date().toISOString()
-          };
-          
-          const { data: newProfileData, error: newProfileError } = await supabase
-            .from('users')
-            .insert([newProfile])
-            .select()
-            .single();
-            
-          if (newProfileError) {
-            console.error("Error creating missing profile:", newProfileError);
-            return null;
-          }
-          
-          console.log("Created missing user profile");
-          profileData = newProfileData;
+        if (newProfileError) {
+          console.error("Error creating missing profile:", newProfileError);
+          toast.error("Error loading user profile");
+          return null;
         }
-      }
-      
-      if (!profileData) {
+        
+        console.log("Created missing user profile successfully");
+        profileData = newProfileData;
+      } else {
+        toast.error("Error loading user profile");
         return null;
       }
     }
       
     if (!profileData) {
       console.log("No profile data found for user");
+      toast.error("Could not load user profile");
       return null;
     }
     
-    console.log("User profile data retrieved successfully");
+    console.log("User profile data retrieved:", profileData);
     
     // Fetch education, experience and skills data
-    const [educationResponse, experienceResponse, skillsResponse] = await Promise.all([
+    const [educationResponse, experienceResponse, skillsResponse, interestsResponse] = await Promise.all([
       supabase.from('user_education').select('*').eq('user_id', user.id),
       supabase.from('user_experience').select('*').eq('user_id', user.id),
-      supabase.from('user_skills').select('*').eq('user_id', user.id)
+      supabase.from('user_skills').select('*').eq('user_id', user.id),
+      supabase.from('user_interests').select('*').eq('user_id', user.id)
     ]);
     
     // Transform database user to match our User type
@@ -351,12 +353,18 @@ export const getCurrentUser = async () => {
         name: skill.name,
         level: skill.level as "beginner" | "intermediate" | "advanced" | "expert"
       })) : [],
-      interests: []
+      interests: interestsResponse.data ? interestsResponse.data.map(interest => interest.interests) : []
     };
       
+    console.log("User profile constructed successfully:", {
+      id: userProfile.id,
+      name: userProfile.name,
+      role: userProfile.role
+    });
     return userProfile;
   } catch (error) {
     console.error("Error fetching current user:", error);
+    toast.error("Failed to load user data");
     return null;
   }
 };

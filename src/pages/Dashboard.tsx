@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+
+import React from "react";
+import { Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,21 +15,28 @@ import {
   Briefcase,
   Award,
   MapPin,
-  TrendingUp
+  TrendingUp,
+  Loader2
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { User } from "@/types";
 
 export function Dashboard() {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const { user, loading, session } = useAuth();
   
-  useEffect(() => {
-    if (user) {
-      setLoading(false);
-    }
-  }, [user]);
+  console.log("Dashboard rendering with:", {
+    userExists: !!user,
+    loading,
+    sessionExists: !!session,
+    userName: user?.name,
+    userRole: user?.role
+  });
 
+  // Redirect to login if not authenticated
+  if (!loading && !session) {
+    console.log("No session found, redirecting to login");
+    return <Navigate to="/login" />;
+  }
+  
   // Mock data - in a real app this would come from an API
   const upcomingEvents = [
     {
@@ -97,10 +105,27 @@ export function Dashboard() {
   
   if (loading) {
     return (
-      <div className="container py-8 min-h-[60vh] flex items-center justify-center">
+      <div className="container py-8 min-h-[80vh] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-rajasthan-blue border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-lg text-muted-foreground">Loading dashboard...</p>
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-12 w-12 text-rajasthan-blue animate-spin" />
+            <p className="text-lg text-muted-foreground">Loading your dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!user) {
+    return (
+      <div className="container py-8 min-h-[80vh] flex items-center justify-center">
+        <div className="text-center">
+          <div className="flex flex-col items-center gap-4">
+            <p className="text-lg text-muted-foreground">Unable to load user data</p>
+            <Button asChild>
+              <Link to="/login">Go to Login</Link>
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -115,7 +140,7 @@ export function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
-                  <h1 className="text-2xl font-bold">Welcome back, {user?.name || "User"}!</h1>
+                  <h1 className="text-2xl font-bold">Welcome back, {user.name || "Friend"}!</h1>
                   <p className="opacity-90">Your alumni network is growing. You have 5 new connection requests.</p>
                 </div>
                 <div className="hidden md:block">
@@ -265,16 +290,16 @@ export function Dashboard() {
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center text-center">
                   <Avatar className="h-20 w-20 mb-4">
-                    <AvatarImage src={user?.profileImage} />
-                    <AvatarFallback>{user?.name ? user.name.charAt(0) : 'U'}</AvatarFallback>
+                    <AvatarImage src={user.profileImage} />
+                    <AvatarFallback>{user.name ? user.name.charAt(0) : 'U'}</AvatarFallback>
                   </Avatar>
-                  <h3 className="font-semibold text-xl">{user?.name || "User"}</h3>
+                  <h3 className="font-semibold text-xl">{user.name || "User"}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {user?.role === 'alumni' && user?.experience && user?.experience[0] ? 
+                    {user.role === 'alumni' && user.experience && user.experience[0] ? 
                       `${user.experience[0].title} at ${user.experience[0].company}` : 
-                      (user?.role === 'student' ? "Student" : "User")}
+                      (user.role === 'student' ? "Student" : user.role || "User")}
                   </p>
-                  {user?.location && (
+                  {user.location && (
                     <div className="flex items-center text-xs text-muted-foreground mt-1">
                       <MapPin className="h-3 w-3 mr-1" />
                       <span>{user.location}</span>
@@ -297,7 +322,7 @@ export function Dashboard() {
                     </div>
                   </div>
                   <Button className="w-full" variant="outline" asChild>
-                    <Link to={`/profile/${user?.id}`}>View Profile</Link>
+                    <Link to={`/profile/${user.id}`}>View Profile</Link>
                   </Button>
                 </div>
               </CardContent>
