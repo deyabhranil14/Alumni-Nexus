@@ -252,7 +252,7 @@ export const getCurrentUser = async () => {
     console.log("Auth user found, fetching profile data");
     
     // Get the user profile data
-    const { data: profileData, error: profileError } = await supabase
+    let { data: profileData, error: profileError } = await supabase
       .from('users')
       .select('*')
       .eq('id', user.id)
