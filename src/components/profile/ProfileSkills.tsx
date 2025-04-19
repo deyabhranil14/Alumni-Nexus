@@ -11,6 +11,9 @@ interface ProfileSkillsProps {
 }
 
 export function ProfileSkills({ skills, isOwnProfile }: ProfileSkillsProps) {
+  // Add console log to debug skills rendering
+  console.log("ProfileSkills - Rendering with skills:", skills);
+  
   return (
     <Card>
       <CardHeader>
@@ -28,7 +31,7 @@ export function ProfileSkills({ skills, isOwnProfile }: ProfileSkillsProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {skills.length > 0 ? (
+        {skills && skills.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {skills.map((skill, index) => (
               <div 

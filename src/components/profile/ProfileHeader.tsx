@@ -11,6 +11,14 @@ interface ProfileHeaderProps {
 }
 
 export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
+  // Add console log to debug user data
+  console.log("ProfileHeader - Rendering with user:", user);
+  
+  if (!user) {
+    console.error("No user data provided to ProfileHeader");
+    return null;
+  }
+
   return (
     <div className="relative h-48 md:h-64 bg-gradient-to-r from-rajasthan-blue to-rajasthan-turquoise rounded-t-xl">
       {user.coverImage && (
@@ -35,27 +43,31 @@ export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
       <div className="absolute -bottom-12 left-8">
         <Avatar className="h-24 w-24 border-4 border-background">
           <AvatarImage src={user.profileImage} />
-          <AvatarFallback className="text-xl">{user.name.charAt(0)}</AvatarFallback>
+          <AvatarFallback className="text-xl">{user.name ? user.name.charAt(0) : '?'}</AvatarFallback>
         </Avatar>
       </div>
       
       <div className="absolute bottom-4 left-40 text-white">
-        <h1 className="text-2xl font-bold">{user.name}</h1>
-        <div className="flex items-center gap-4 text-sm mt-1">
+        <h1 className="text-2xl font-bold">{user.name || 'User'}</h1>
+        <div className="flex items-center gap-4 text-sm mt-1 flex-wrap">
           {user.location && (
             <div className="flex items-center">
               <MapPin className="h-4 w-4 mr-1" />
               <span>{user.location}</span>
             </div>
           )}
-          <div className="flex items-center">
-            <Mail className="h-4 w-4 mr-1" />
-            <span>{user.email}</span>
-          </div>
-          <div className="flex items-center">
-            <Calendar className="h-4 w-4 mr-1" />
-            <span>Joined {new Date(user.joinDate).toLocaleDateString()}</span>
-          </div>
+          {user.email && (
+            <div className="flex items-center">
+              <Mail className="h-4 w-4 mr-1" />
+              <span>{user.email}</span>
+            </div>
+          )}
+          {user.joinDate && (
+            <div className="flex items-center">
+              <Calendar className="h-4 w-4 mr-1" />
+              <span>Joined {new Date(user.joinDate).toLocaleDateString()}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
