@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,8 +8,10 @@ import {
   MessageSquare,
   Search,
   Menu,
-  ChevronDown,
-  User
+  User,
+  Users,
+  Globe,
+  MessageSquare as Chat,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,6 +21,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -25,7 +35,9 @@ import { toast } from "sonner";
 export function Header() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { user, logout, isGuest } = useAuth();
+  const { user, logout, isGuest, updateGuestInfo } = useAuth();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
   const handleLogout = async () => {
     try {
@@ -46,16 +58,67 @@ export function Header() {
       .toUpperCase()
       .substring(0, 2);
   };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      toast.info(`Searching for "${searchQuery}"...`);
+      // In a real app, this would navigate to search results
+      setSearchQuery("");
+      setIsSearchOpen(false);
+    }
+  };
   
   return (
     <header className="sticky top-0 z-50 border-b bg-background">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-4">
           {isMobile && (
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle menu</span>
-            </Button>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+                <SheetHeader className="pb-6">
+                  <SheetTitle>Menu</SheetTitle>
+                </SheetHeader>
+                <nav className="grid gap-4">
+                  <Link 
+                    to="/dashboard" 
+                    className="flex items-center gap-2 px-4 py-2 rounded-md hover:bg-muted"
+                    onClick={() => (document.querySelector('.close-button') as HTMLButtonElement)?.click()}
+                  >
+                    Dashboard
+                  </Link>
+                  <Link 
+                    to="/network" 
+                    className="flex items-center gap-2 px-4 py-2 rounded-md hover:bg-muted"
+                    onClick={() => (document.querySelector('.close-button') as HTMLButtonElement)?.click()}
+                  >
+                    <Users className="h-4 w-4" />
+                    Network
+                  </Link>
+                  <Link 
+                    to="/mentorship" 
+                    className="flex items-center gap-2 px-4 py-2 rounded-md hover:bg-muted"
+                    onClick={() => (document.querySelector('.close-button') as HTMLButtonElement)?.click()}
+                  >
+                    Mentorship
+                  </Link>
+                  <Link 
+                    to="/profile" 
+                    className="flex items-center gap-2 px-4 py-2 rounded-md hover:bg-muted"
+                    onClick={() => (document.querySelector('.close-button') as HTMLButtonElement)?.click()}
+                  >
+                    <User className="h-4 w-4" />
+                    Profile
+                  </Link>
+                </nav>
+              </SheetContent>
+            </Sheet>
           )}
           <Link to="/" className="flex items-center gap-2">
             <div className="rounded-full bg-rajasthan-blue p-1">
@@ -72,29 +135,61 @@ export function Header() {
               Alumni Nexus
             </span>
           </Link>
+          
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-1">
+            <Button variant="ghost" asChild>
+              <Link to="/dashboard">Dashboard</Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/network">
+                <Globe className="h-4 w-4 mr-2" />
+                Network
+              </Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/mentorship">Mentorship</Link>
+            </Button>
+          </div>
         </div>
 
-        <div className="hidden md:flex flex-1 max-w-md mx-4">
-          <div className="relative w-full">
+        <div className={`${isSearchOpen ? 'flex' : 'hidden'} md:flex flex-1 max-w-md mx-4`}>
+          <form onSubmit={handleSearch} className="relative w-full">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <input
               type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search alumni, students, posts..."
               className="w-full rounded-full border border-input bg-background pl-8 pr-4 py-2 text-sm ring-offset-background"
             />
-          </div>
+          </form>
         </div>
         
         <div className="flex items-center gap-3">
+          {isMobile && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+            >
+              <Search className="h-5 w-5" />
+              <span className="sr-only">Search</span>
+            </Button>
+          )}
+          
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
             <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-rajasthan-saffron"></span>
             <span className="sr-only">Notifications</span>
           </Button>
-          <Button variant="ghost" size="icon" className="relative hidden md:flex">
-            <MessageSquare className="h-5 w-5" />
-            <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-rajasthan-saffron"></span>
-            <span className="sr-only">Messages</span>
+          
+          <Button variant="ghost" size="icon" className="relative" asChild>
+            <Link to="/network?tab=assistant">
+              <Chat className="h-5 w-5" />
+              <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-rajasthan-saffron"></span>
+              <span className="sr-only">AI Assistant</span>
+            </Link>
           </Button>
           
           <DropdownMenu>
@@ -116,7 +211,7 @@ export function Header() {
                 <Link to="/profile">Profile</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/settings">Settings</Link>
+                <Link to="/network">Network</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {isGuest ? (

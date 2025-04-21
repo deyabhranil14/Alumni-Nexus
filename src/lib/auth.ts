@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { User, UserRole } from "@/types";
@@ -23,9 +24,13 @@ export type RegisterFormData = AuthFormData & {
   profileImage?: File;
 };
 
-export const registerUser = async (data: RegisterFormData) => {
+export const registerUser = async (data: RegisterFormData, redirectUrl?: string) => {
   try {
     console.log("Starting user registration");
+    
+    // Use the provided redirectUrl or default to the current origin
+    const finalRedirectUrl = redirectUrl || window.location.origin;
+    console.log("Using redirect URL:", finalRedirectUrl);
     
     // Step 1: Register the user with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -36,6 +41,7 @@ export const registerUser = async (data: RegisterFormData) => {
           name: data.name,
           role: data.role,
         },
+        emailRedirectTo: `${finalRedirectUrl}/auth/callback`,
       },
     });
 
