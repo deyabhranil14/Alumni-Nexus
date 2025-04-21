@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import { ProfileSkills } from "./ProfileSkills";
 
 export default function UserProfile() {
   const { userId } = useParams<{ userId: string }>();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, isGuest } = useAuth();
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [education, setEducation] = useState<UserEducation[]>([]);
   const [experience, setExperience] = useState<UserExperience[]>([]);
@@ -26,6 +27,18 @@ export default function UserProfile() {
     const targetUserId = userId || currentUser?.id;
     
     if (!targetUserId) {
+      setLoading(false);
+      // For guests with no userId param, use the current guest user
+      if (isGuest && !userId && currentUser) {
+        setProfileUser(currentUser);
+        setLoading(false);
+      }
+      return;
+    }
+    
+    // If viewing own guest profile
+    if (isGuest && !userId) {
+      setProfileUser(currentUser);
       setLoading(false);
       return;
     }
@@ -123,8 +136,11 @@ export default function UserProfile() {
       }
     }
     
-    fetchProfile();
-  }, [userId, currentUser?.id]);
+    // Only fetch from database if not guest viewing own profile
+    if (!(isGuest && currentUser?.id === targetUserId)) {
+      fetchProfile();
+    }
+  }, [userId, currentUser?.id, isGuest, currentUser]);
 
   if (loading) {
     return (

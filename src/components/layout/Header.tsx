@@ -8,7 +8,8 @@ import {
   MessageSquare,
   Search,
   Menu,
-  ChevronDown
+  ChevronDown,
+  User
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -25,7 +26,7 @@ import { toast } from "sonner";
 export function Header() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, isGuest } = useAuth();
   
   const handleLogout = async () => {
     try {
@@ -87,60 +88,57 @@ export function Header() {
         </div>
         
         <div className="flex items-center gap-3">
-          {!user ? (
-            <>
-              <Button variant="ghost" asChild>
-                <Link to="/login">Login</Link>
-              </Button>
-              <Button className="bg-rajasthan-blue hover:bg-rajasthan-blue/90" asChild>
-                <Link to="/register">Register</Link>
-              </Button>
-            </>
-          ) : (
-            <>
-              {/* Icons - Condensed on mobile */}
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-rajasthan-saffron"></span>
-                <span className="sr-only">Notifications</span>
-              </Button>
-              <Button variant="ghost" size="icon" className="relative hidden md:flex">
-                <MessageSquare className="h-5 w-5" />
-                <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-rajasthan-saffron"></span>
-                <span className="sr-only">Messages</span>
-              </Button>
-              
-              {/* User Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.profileImage || undefined} alt={user.name} />
-                      <AvatarFallback>{user.name ? getInitials(user.name) : "U"}</AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>{user.name || "My Account"}</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/dashboard">Dashboard</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/profile">Profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings">Settings</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          )}
+          {/* Icons - Condensed on mobile */}
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="h-5 w-5" />
+            <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-rajasthan-saffron"></span>
+            <span className="sr-only">Notifications</span>
+          </Button>
+          <Button variant="ghost" size="icon" className="relative hidden md:flex">
+            <MessageSquare className="h-5 w-5" />
+            <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-rajasthan-saffron"></span>
+            <span className="sr-only">Messages</span>
+          </Button>
           
+          {/* User Menu - Show avatar for all users */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.profileImage || undefined} alt={user?.name} />
+                  <AvatarFallback>{isGuest ? <User size={16} /> : user?.name ? getInitials(user.name) : "U"}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>{isGuest ? "Guest User" : user?.name || "My Account"}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/dashboard">Dashboard</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/profile">Profile</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/settings">Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {isGuest ? (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link to="/login">Login</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/register">Register</Link>
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem onClick={handleLogout}>
+                  Logout
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

@@ -1,15 +1,30 @@
-
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
-import { User as AppUser } from "@/types";
+import { User as AppUser, UserRole } from "@/types";
 import { getCurrentUser, loginUser, logoutUser, registerUser, AuthFormData, RegisterFormData } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { v4 as uuidv4 } from 'uuid';
+
+const createGuestUser = (): AppUser => ({
+  id: `guest-${uuidv4()}`,
+  role: 'guest' as UserRole,
+  name: 'Guest User',
+  email: '',
+  profileImage: '',
+  coverImage: '',
+  joinDate: new Date().toISOString(),
+  education: [],
+  experience: [],
+  skills: [],
+  interests: []
+});
 
 interface AuthContextType {
   user: AppUser | null;
   session: Session | null;
   loading: boolean;
+  isGuest: boolean;
   login: (data: AuthFormData) => Promise<{ success: boolean; error?: any }>;
   register: (data: RegisterFormData) => Promise<{ success: boolean; error?: any }>;
   logout: () => Promise<{ success: boolean; error?: any }>;
@@ -19,15 +34,14 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AppUser | null>(null);
+  const [user, setUser] = useState<AppUser | null>(createGuestUser());
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(true);
 
-  // Initialize user and set up auth state change listener
   useEffect(() => {
     console.log("Setting up auth state listener");
 
-    // Set up auth state change listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log("Auth state changed:", event, "Session:", newSession ? "exists" : "null");
@@ -37,28 +51,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log("User signed in, fetching profile data");
           setLoading(true);
           
-          // Use setTimeout to prevent deadlocks with Supabase auth
           setTimeout(async () => {
             try {
               const userProfile = await getCurrentUser();
               console.log("User profile fetched:", userProfile ? "success" : "null");
-              setUser(userProfile);
+              if (userProfile) {
+                setUser(userProfile);
+                setIsGuest(false);
+              } else {
+                setUser(createGuestUser());
+                setIsGuest(true);
+              }
               setLoading(false);
             } catch (error) {
               console.error("Error fetching user profile on auth change:", error);
-              setUser(null);
+              setUser(createGuestUser());
+              setIsGuest(true);
               setLoading(false);
             }
           }, 0);
         } else if (event === 'SIGNED_OUT') {
           console.log("User signed out");
-          setUser(null);
+          setUser(createGuestUser());
+          setIsGuest(true);
           setLoading(false);
         }
       }
     );
 
-    // THEN check for existing session
     const initializeUser = async () => {
       try {
         console.log("Checking for existing session");
@@ -70,14 +90,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log("Found existing session, loading user profile");
             const userProfile = await getCurrentUser();
             console.log("Initial user profile:", userProfile ? "loaded" : "not found");
-            setUser(userProfile);
+            if (userProfile) {
+              setUser(userProfile);
+              setIsGuest(false);
+            } else {
+              setUser(createGuestUser());
+              setIsGuest(true);
+            }
           } catch (error) {
             console.error("Error loading initial user profile:", error);
+            setUser(createGuestUser());
+            setIsGuest(true);
           }
+        } else {
+          setUser(createGuestUser());
+          setIsGuest(true);
         }
         setLoading(false);
       } catch (error) {
         console.error("Error during auth initialization:", error);
+        setUser(createGuestUser());
+        setIsGuest(true);
         setLoading(false);
       }
     };
@@ -94,16 +127,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log("Refreshing user profile");
     setLoading(true);
     try {
-      const userProfile = await getCurrentUser();
-      console.log("User profile refreshed:", userProfile ? "success" : "not found");
-      setUser(userProfile);
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        const userProfile = await getCurrentUser();
+        console.log("User profile refreshed:", userProfile ? "success" : "not found");
+        if (userProfile) {
+          setUser(userProfile);
+          setIsGuest(false);
+          setLoading(false);
+          return userProfile;
+        }
+      }
+      
+      const guestUser = createGuestUser();
+      setUser(guestUser);
+      setIsGuest(true);
       setLoading(false);
-      return userProfile;
+      return guestUser;
     } catch (error) {
       console.error("Error refreshing user profile:", error);
-      setUser(null);
+      const guestUser = createGuestUser();
+      setUser(guestUser);
+      setIsGuest(true);
       setLoading(false);
-      return null;
+      return guestUser;
     }
   };
 
@@ -138,7 +185,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (result.success) {
         console.log("Login successful");
         toast.success("Login successful!");
-        // Note: We don't need to call refreshUser here as the onAuthStateChange will handle it
       } else {
         console.error("Login failed:", result.error);
         toast.error(`Login failed: ${result.error?.message || "Unknown error"}`);
@@ -159,8 +205,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const result = await logoutUser();
       if (result.success) {
         console.log("Logout successful");
-        setUser(null);
-        setSession(null);
+        setUser(createGuestUser());
+        setIsGuest(true);
         toast.success("Logged out successfully");
       } else {
         console.error("Logout failed:", result.error);
@@ -178,6 +224,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     loading,
+    isGuest,
     login,
     register,
     logout,

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import Header from "./Header";
@@ -26,16 +25,7 @@ interface AIChatMessage {
 
 export function MainLayout() {
   const navigate = useNavigate();
-  let userValue = null;
-  
-  // Try to access the auth context, but handle the error if it's not available
-  try {
-    const { user } = useAuth();
-    userValue = user;
-  } catch (error) {
-    console.error("AuthContext not available:", error);
-    // Continue without auth - this shouldn't happen if providers are correctly set up
-  }
+  const { user } = useAuth();
   
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const [aiQuery, setAiQuery] = useState("");

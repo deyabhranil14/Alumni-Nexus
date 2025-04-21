@@ -1,6 +1,5 @@
-
 // User types
-export type UserRole = 'student' | 'alumni' | 'admin';
+export type UserRole = "admin" | "student" | "faculty" | "alumni" | "guest";
 
 export type UserEducation = {
   degree: string;
