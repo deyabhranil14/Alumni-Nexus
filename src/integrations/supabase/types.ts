@@ -9,7 +9,271 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      mentorships: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          goals: string
+          id: string
+          mentee_id: string | null
+          mentor_id: string | null
+          notes: string | null
+          start_date: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          goals: string
+          id?: string
+          mentee_id?: string | null
+          mentor_id?: string | null
+          notes?: string | null
+          start_date?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          goals?: string
+          id?: string
+          mentee_id?: string | null
+          mentor_id?: string | null
+          notes?: string | null
+          start_date?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentorships_mentee_id_fkey"
+            columns: ["mentee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mentorships_mentor_id_fkey"
+            columns: ["mentor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_read: boolean
+          link_to: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link_to?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link_to?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_education: {
+        Row: {
+          degree: string
+          end_year: number | null
+          field_of_study: string
+          id: string
+          institution: string
+          is_ongoing: boolean
+          start_year: number
+          user_id: string
+        }
+        Insert: {
+          degree: string
+          end_year?: number | null
+          field_of_study: string
+          id?: string
+          institution: string
+          is_ongoing?: boolean
+          start_year: number
+          user_id: string
+        }
+        Update: {
+          degree?: string
+          end_year?: number | null
+          field_of_study?: string
+          id?: string
+          institution?: string
+          is_ongoing?: boolean
+          start_year?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_education_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_experience: {
+        Row: {
+          company: string
+          description: string | null
+          end_date: string | null
+          id: string
+          is_ongoing: boolean
+          location: string | null
+          start_date: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          company: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_ongoing?: boolean
+          location?: string | null
+          start_date: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          company?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_ongoing?: boolean
+          location?: string | null
+          start_date?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_experience_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_interests: {
+        Row: {
+          id: string
+          interests: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          interests: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          interests?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_interests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_skills: {
+        Row: {
+          id: string
+          level: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          level: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          level?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_skills_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          bio: string | null
+          cover_image: string | null
+          email: string
+          id: string
+          join_date: string
+          location: string | null
+          name: string
+          profile_image: string | null
+          role: string
+        }
+        Insert: {
+          bio?: string | null
+          cover_image?: string | null
+          email: string
+          id: string
+          join_date?: string
+          location?: string | null
+          name: string
+          profile_image?: string | null
+          role: string
+        }
+        Update: {
+          bio?: string | null
+          cover_image?: string | null
+          email?: string
+          id?: string
+          join_date?: string
+          location?: string | null
+          name?: string
+          profile_image?: string | null
+          role?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

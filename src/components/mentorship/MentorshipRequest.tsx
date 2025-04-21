@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -69,13 +70,15 @@ export default function MentorshipRequest({ mentorId: propMentorId }: Mentorship
         form.reset();
       } else {
         // Insert the mentorship request for logged-in users
-        const { data, error } = await supabase.from('mentorships').insert({
-          mentor_id: finalMentorId,
-          mentee_id: user.id,
-          goals: values.goals,
-          notes: values.notes || "",
-          status: "pending",
-        });
+        const { error } = await supabase
+          .from('mentorships')
+          .insert({
+            mentor_id: finalMentorId,
+            mentee_id: user.id,
+            goals: values.goals,
+            notes: values.notes || "",
+            status: "pending",
+          });
         
         if (error) throw error;
         
@@ -83,12 +86,14 @@ export default function MentorshipRequest({ mentorId: propMentorId }: Mentorship
         form.reset();
         
         // Create notification for mentor
-        await supabase.from('notifications').insert({
-          user_id: finalMentorId,
-          type: "mentorship_request",
-          content: `${user.name} has requested your mentorship`,
-          link_to: `/mentorship/requests`,
-        });
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: finalMentorId,
+            type: "mentorship_request",
+            content: `${user.name} has requested your mentorship`,
+            link_to: `/mentorship/requests`,
+          });
       }
     } catch (error) {
       console.error("Error submitting mentorship request:", error);

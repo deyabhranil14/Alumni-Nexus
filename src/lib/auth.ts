@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { User, UserRole } from "@/types";
@@ -72,16 +71,21 @@ export const registerUser = async (data: RegisterFormData, redirectUrl?: string)
     
     console.log("Creating user profile:", { ...userProfile, id: "***hidden***" });
     
-    const { error: profileError } = await supabase
-      .from('users')
-      .insert([userProfile]);
-    
-    if (profileError) {
-      console.error("Error creating user profile:", profileError);
-      // We'll continue despite this error since the auth user is created
-      toast.error("User created but profile data could not be saved completely");
-    } else {
-      console.log("User profile created successfully");
+    try {
+      const { error: profileError } = await supabase
+        .from('users')
+        .insert([userProfile]);
+      
+      if (profileError) {
+        console.error("Error creating user profile:", profileError);
+        // We'll continue despite this error since the auth user is created
+        toast.error("User created but profile data could not be saved completely");
+      } else {
+        console.log("User profile created successfully");
+      }
+    } catch (error) {
+      console.error("Error inserting user profile:", error);
+      toast.error("User created but profile data could not be saved");
     }
 
     // Upload profile image if provided
@@ -92,15 +96,19 @@ export const registerUser = async (data: RegisterFormData, redirectUrl?: string)
       try {
         console.log("Uploading profile image");
         
-        const { data: bucketData, error: bucketError } = await supabase
-          .storage.getBucket('alumni_media');
-          
-        if (bucketError && bucketError.message.includes('does not exist')) {
-          console.log("Creating alumni_media bucket");
-          await supabase.storage.createBucket('alumni_media', {
-            public: true,
-            fileSizeLimit: 1024 * 1024 * 2 // 2MB
-          });
+        try {
+          const { data: bucketData, error: bucketError } = await supabase
+            .storage.getBucket('alumni_media');
+            
+          if (bucketError && bucketError.message.includes('does not exist')) {
+            console.log("Creating alumni_media bucket");
+            await supabase.storage.createBucket('alumni_media', {
+              public: true,
+              fileSizeLimit: 1024 * 1024 * 2 // 2MB
+            });
+          }
+        } catch (error) {
+          console.error("Error checking/creating bucket:", error);
         }
         
         const { error: uploadError } = await supabase.storage
@@ -119,12 +127,16 @@ export const registerUser = async (data: RegisterFormData, redirectUrl?: string)
           // Update the user profile with the image URL
           if (imageData?.publicUrl) {
             console.log("Updating user profile with image URL");
-            await supabase
-              .from('users')
-              .update({ profile_image: imageData.publicUrl })
-              .eq('id', authData.user.id);
-              
-            console.log("Profile image uploaded successfully");
+            try {
+              await supabase
+                .from('users')
+                .update({ profile_image: imageData.publicUrl })
+                .eq('id', authData.user.id);
+                
+              console.log("Profile image uploaded successfully");
+            } catch (error) {
+              console.error("Error updating profile with image URL:", error);
+            }
           }
         }
       } catch (imageError) {
@@ -147,9 +159,13 @@ export const registerUser = async (data: RegisterFormData, redirectUrl?: string)
           is_ongoing: data.graduationYear ? false : true,
         };
         
-        await supabase
-          .from('user_education')
-          .insert([education]);
+        try {
+          await supabase
+            .from('user_education')
+            .insert([education]);
+        } catch (error) {
+          console.error("Error adding education data:", error);
+        }
       }
       
       if (data.role === 'alumni' && data.currentCompany) {
@@ -165,22 +181,30 @@ export const registerUser = async (data: RegisterFormData, redirectUrl?: string)
           description: ''
         };
         
-        await supabase
-          .from('user_experience')
-          .insert([experience]);
+        try {
+          await supabase
+            .from('user_experience')
+            .insert([experience]);
+        } catch (error) {
+          console.error("Error adding experience data:", error);
+        }
       }
       
       // Store interests
       if (data.interests && data.interests.length > 0) {
         console.log("Adding user interests");
-        const interestsEntries = data.interests.map(interest => ({
-          user_id: authData.user.id,
-          interests: interest
-        }));
-        
-        await supabase
-          .from('user_interests')
-          .insert(interestsEntries);
+        try {
+          const interestsEntries = data.interests.map(interest => ({
+            user_id: authData.user.id,
+            interests: interest
+          }));
+          
+          await supabase
+            .from('user_interests')
+            .insert(interestsEntries);
+        } catch (error) {
+          console.error("Error adding interests:", error);
+        }
       }
     } catch (additionalDataError) {
       console.error("Error saving additional user data:", additionalDataError);

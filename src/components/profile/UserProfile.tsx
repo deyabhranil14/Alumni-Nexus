@@ -48,9 +48,10 @@ export default function UserProfile() {
       setError(null);
       
       try {
+        // Fetch user data
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('*')
+          .select()
           .eq('id', targetUserId)
           .single();
           
@@ -62,27 +63,31 @@ export default function UserProfile() {
           return;
         }
         
+        // Fetch education data
         const { data: educationData, error: educationError } = await supabase
           .from('user_education')
-          .select('*')
+          .select()
           .eq('user_id', targetUserId);
           
         if (educationError) throw educationError;
         
+        // Fetch experience data
         const { data: experienceData, error: experienceError } = await supabase
           .from('user_experience')
-          .select('*')
+          .select()
           .eq('user_id', targetUserId);
           
         if (experienceError) throw experienceError;
         
+        // Fetch skills data
         const { data: skillsData, error: skillsError } = await supabase
           .from('user_skills')
-          .select('*')
+          .select()
           .eq('user_id', targetUserId);
           
         if (skillsError) throw skillsError;
         
+        // Create user profile object
         const userProfile: User = {
           id: userData.id,
           role: userData.role as UserRole,
@@ -101,6 +106,7 @@ export default function UserProfile() {
         
         setProfileUser(userProfile);
         
+        // Transform education data
         const transformedEducation: UserEducation[] = educationData ? educationData.map(edu => ({
           degree: edu.degree,
           institution: edu.institution,
@@ -110,16 +116,18 @@ export default function UserProfile() {
           isOngoing: edu.is_ongoing
         })) : [];
         
+        // Transform experience data
         const transformedExperience: UserExperience[] = experienceData ? experienceData.map(exp => ({
           title: exp.title,
           company: exp.company,
-          location: exp.location,
+          location: exp.location || "",
           startDate: exp.start_date,
           endDate: exp.end_date,
           isOngoing: exp.is_ongoing,
           description: exp.description || ""
         })) : [];
         
+        // Transform skills data
         const transformedSkills: UserSkill[] = skillsData ? skillsData.map(skill => ({
           name: skill.name,
           level: skill.level as "beginner" | "intermediate" | "advanced" | "expert"
