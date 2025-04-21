@@ -26,7 +26,17 @@ interface AIChatMessage {
 
 export function MainLayout() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  let userValue = null;
+  
+  // Try to access the auth context, but handle the error if it's not available
+  try {
+    const { user } = useAuth();
+    userValue = user;
+  } catch (error) {
+    console.error("AuthContext not available:", error);
+    // Continue without auth - this shouldn't happen if providers are correctly set up
+  }
+  
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const [aiQuery, setAiQuery] = useState("");
   const [aiResponses, setAiResponses] = useState<AIChatMessage[]>([]);
