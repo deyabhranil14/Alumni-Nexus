@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,8 +13,8 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
 const mentorshipSchema = z.object({
-  name: z.string().min(2, "Please provide your name").optional(),
-  email: z.string().email("Please provide a valid email").optional(),
+  name: z.string().min(2, "Please provide your name"),
+  email: z.string().email("Please provide a valid email"),
   goals: z.string().min(10, "Please describe your goals in at least 10 characters"),
   notes: z.string().optional(),
 });
@@ -58,8 +57,8 @@ export default function MentorshipRequest({ mentorId: propMentorId }: Mentorship
         const guestRequests = JSON.parse(localStorage.getItem('guestMentorshipRequests') || '[]');
         guestRequests.push({
           mentor_id: finalMentorId,
-          mentee_name: values.name || "Guest User",
-          mentee_email: values.email || "",
+          mentee_name: values.name,
+          mentee_email: values.email,
           goals: values.goals,
           notes: values.notes || "",
           status: "pending",
@@ -119,40 +118,36 @@ export default function MentorshipRequest({ mentorId: propMentorId }: Mentorship
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">
-            {isGuest && (
-              <>
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Your Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter your name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Your Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter your email" type="email" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        So the mentor can contact you directly.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
-            )}
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Your Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter your name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Your Email</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter your email" type="email" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    So the mentor can contact you directly.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             <FormField
               control={form.control}

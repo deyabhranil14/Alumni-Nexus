@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -75,7 +74,6 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Search Bar - Hidden on mobile */}
         <div className="hidden md:flex flex-1 max-w-md mx-4">
           <div className="relative w-full">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -88,7 +86,6 @@ export function Header() {
         </div>
         
         <div className="flex items-center gap-3">
-          {/* Icons - Condensed on mobile */}
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
             <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-rajasthan-saffron"></span>
@@ -100,7 +97,6 @@ export function Header() {
             <span className="sr-only">Messages</span>
           </Button>
           
-          {/* User Menu - Show avatar for all users */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full">

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import Header from "./Header";
@@ -25,7 +26,8 @@ interface AIChatMessage {
 
 export function MainLayout() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const auth = useAuth();
+  const user = auth?.user;
   
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const [aiQuery, setAiQuery] = useState("");

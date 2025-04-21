@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,21 +21,19 @@ import {
 import { useAuth } from "@/context/AuthContext";
 
 export function Dashboard() {
-  const { user, loading, session } = useAuth();
+  const { user, loading, session, isGuest } = useAuth();
   
   console.log("Dashboard rendering with:", {
     userExists: !!user,
     loading,
     sessionExists: !!session,
     userName: user?.name,
-    userRole: user?.role
+    userRole: user?.role,
+    isGuest
   });
 
-  // Redirect to login if not authenticated
-  if (!loading && !session) {
-    console.log("No session found, redirecting to login");
-    return <Navigate to="/login" />;
-  }
+  // No longer redirect to login if not authenticated
+  // Instead, show the dashboard for all users (including guests)
   
   // Mock data - in a real app this would come from an API
   const upcomingEvents = [
@@ -140,8 +138,14 @@ export function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
-                  <h1 className="text-2xl font-bold">Welcome back, {user.name || "Friend"}!</h1>
-                  <p className="opacity-90">Your alumni network is growing. You have 5 new connection requests.</p>
+                  <h1 className="text-2xl font-bold">
+                    {isGuest ? 'Welcome, Guest!' : `Welcome back, ${user.name || "Friend"}!`}
+                  </h1>
+                  <p className="opacity-90">
+                    {isGuest 
+                      ? "Explore the alumni network without logging in"
+                      : "Your alumni network is growing. You have 5 new connection requests."}
+                  </p>
                 </div>
                 <div className="hidden md:block">
                   <img 

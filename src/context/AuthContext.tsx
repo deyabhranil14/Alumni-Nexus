@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { User as AppUser, UserRole } from "@/types";
@@ -31,7 +32,17 @@ interface AuthContextType {
   refreshUser: () => Promise<AppUser | null>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Create the context with default values
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  session: null,
+  loading: true,
+  isGuest: true,
+  login: async () => ({ success: false, error: "AuthContext not initialized" }),
+  register: async () => ({ success: false, error: "AuthContext not initialized" }),
+  logout: async () => ({ success: false, error: "AuthContext not initialized" }),
+  refreshUser: async () => null
+});
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AppUser | null>(createGuestUser());
