@@ -12,6 +12,7 @@ import Profile from "@/pages/Profile";
 import Mentorship from "@/pages/Mentorship";
 import Network from "@/pages/Network";
 import AIAssistant from "@/pages/AIAssistant";
+import Chat from "@/pages/Chat";
 import AuthCallback from "@/pages/AuthCallback";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -25,7 +26,7 @@ function App() {
           <Toaster richColors position="top-right" />
           <Routes>
             <Route path="/" element={<MainLayout />}>
-              <Route index element={<Index />} />
+              <Route index element={<Home />} />
               <Route path="home" element={<Home />} />
               <Route path="login" element={<Login />} />
               <Route path="register" element={<Register />} />
@@ -35,6 +36,7 @@ function App() {
               <Route path="mentorship" element={<Mentorship />} />
               <Route path="network" element={<Network />} />
               <Route path="assistant" element={<AIAssistant />} />
+              <Route path="chat" element={<Chat />} />
               <Route path="auth/callback" element={<AuthCallback />} />
               <Route path="*" element={<NotFound />} />
             </Route>

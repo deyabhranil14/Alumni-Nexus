@@ -1,9 +1,18 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const Index = () => {
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    // Redirect to home page
+    navigate('/home');
+  }, [navigate]);
+
+  // This content will only be visible briefly before the redirect
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-muted/20 px-4">
       <div className="text-center max-w-3xl">

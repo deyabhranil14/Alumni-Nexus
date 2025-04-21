@@ -110,3 +110,13 @@ export type Notification = {
   createdAt: string;
   linkTo: string;
 };
+
+// Chat types
+export type Message = {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  timestamp: string;
+  read: boolean;
+};

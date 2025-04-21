@@ -98,11 +98,11 @@ export const registerUser = async (data: RegisterFormData, redirectUrl?: string)
         
         try {
           const { data: bucketData, error: bucketError } = await supabase
-            .storage.getBucket('alumni_media');
+            .storage.getBucket('alumni-media');
             
           if (bucketError && bucketError.message.includes('does not exist')) {
-            console.log("Creating alumni_media bucket");
-            await supabase.storage.createBucket('alumni_media', {
+            console.log("Creating alumni-media bucket");
+            await supabase.storage.createBucket('alumni-media', {
               public: true,
               fileSizeLimit: 1024 * 1024 * 2 // 2MB
             });
@@ -112,7 +112,7 @@ export const registerUser = async (data: RegisterFormData, redirectUrl?: string)
         }
         
         const { error: uploadError } = await supabase.storage
-          .from('alumni_media')
+          .from('alumni-media')
           .upload(`profiles/${fileName}`, data.profileImage);
         
         if (uploadError) {
@@ -121,7 +121,7 @@ export const registerUser = async (data: RegisterFormData, redirectUrl?: string)
         } else {
           // Get the public URL
           const { data: imageData } = supabase.storage
-            .from('alumni_media')
+            .from('alumni-media')
             .getPublicUrl(`profiles/${fileName}`);
             
           // Update the user profile with the image URL
@@ -373,7 +373,7 @@ export const getCurrentUser = async () => {
       experience: experienceResponse.data ? experienceResponse.data.map(exp => ({
         title: exp.title,
         company: exp.company,
-        location: exp.location,
+        location: exp.location || "",
         startDate: exp.start_date,
         endDate: exp.end_date,
         isOngoing: exp.is_ongoing || false,
