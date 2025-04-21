@@ -25,6 +25,8 @@ const AuthCallback = () => {
           setError(error.message);
         } else {
           console.log("Auth callback successful");
+          // Clear any guest user data when a real user logs in
+          localStorage.removeItem('guestUser');
           // Redirect to the dashboard
           navigate("/dashboard");
         }
@@ -38,12 +40,12 @@ const AuthCallback = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30">
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 dark:bg-gray-900">
       <div className="text-center">
         {error ? (
           <div>
             <h1 className="text-2xl font-bold text-destructive mb-2">Authentication Error</h1>
-            <p className="text-muted-foreground">{error}</p>
+            <p className="text-muted-foreground dark:text-gray-400">{error}</p>
             <button
               onClick={() => navigate("/login")}
               className="mt-4 px-4 py-2 bg-rajasthan-blue text-white rounded-md"
@@ -54,7 +56,7 @@ const AuthCallback = () => {
         ) : (
           <div className="flex flex-col items-center">
             <Loader2 className="h-12 w-12 text-rajasthan-blue animate-spin" />
-            <p className="mt-4 text-lg">Completing authentication...</p>
+            <p className="mt-4 text-lg dark:text-white">Completing authentication...</p>
           </div>
         )}
       </div>

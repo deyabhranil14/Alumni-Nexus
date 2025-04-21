@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Bot, User } from "lucide-react";
+import { Send, Bot, User, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 type Message = {
   id: string;
@@ -17,6 +18,7 @@ type Message = {
 };
 
 const AIChatAssistant = () => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -36,12 +38,12 @@ const AIChatAssistant = () => {
     setMessages([
       {
         id: "welcome",
-        content: "Hello! I'm your Alumni Nexus Assistant. How can I help you today?",
+        content: `Hello${user?.name ? ' ' + user.name : ''}! I'm your Alumni Nexus Assistant. How can I help you today?`,
         sender: "ai",
         timestamp: new Date(),
       },
     ]);
-  }, []);
+  }, [user?.name]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,10 +113,10 @@ const AIChatAssistant = () => {
   };
 
   return (
-    <Card className="flex flex-col h-[600px] max-w-3xl mx-auto">
-      <CardHeader className="border-b bg-muted/50">
+    <Card className="flex flex-col h-[600px] max-w-3xl mx-auto dark:border-gray-800">
+      <CardHeader className="border-b bg-muted/50 dark:bg-gray-800/50">
         <CardTitle className="flex items-center gap-2">
-          <Bot className="h-5 w-5 text-rajasthan-blue" />
+          <Bot className="h-5 w-5 text-rajasthan-blue dark:text-rajasthan-turquoise" />
           Alumni Nexus Assistant
         </CardTitle>
       </CardHeader>
@@ -126,9 +128,9 @@ const AIChatAssistant = () => {
                 key={message.id}
                 className={`flex gap-3 ${
                   message.sender === "user" ? "flex-row-reverse" : ""
-                }`}
+                } animate-fade-in`}
               >
-                <Avatar className={message.sender === "user" ? "bg-rajasthan-saffron" : "bg-rajasthan-blue"}>
+                <Avatar className={message.sender === "user" ? "bg-rajasthan-saffron" : "bg-rajasthan-blue dark:bg-rajasthan-turquoise"}>
                   {message.sender === "user" ? (
                     <User className="h-5 w-5 text-white" />
                   ) : (
@@ -141,8 +143,8 @@ const AIChatAssistant = () => {
                 <div
                   className={`rounded-lg px-4 py-2 max-w-[80%] ${
                     message.sender === "user"
-                      ? "bg-rajasthan-saffron/10 text-right ml-auto"
-                      : "bg-muted"
+                      ? "bg-rajasthan-saffron/10 dark:bg-rajasthan-saffron/20 text-right ml-auto"
+                      : "bg-muted dark:bg-gray-800"
                   }`}
                 >
                   <p className="text-sm">{message.content}</p>
@@ -159,7 +161,7 @@ const AIChatAssistant = () => {
           </div>
         </ScrollArea>
       </CardContent>
-      <CardFooter className="border-t p-3">
+      <CardFooter className="border-t p-3 dark:border-gray-800">
         <form onSubmit={handleSubmit} className="flex w-full gap-2">
           <Input
             ref={inputRef}
@@ -170,8 +172,12 @@ const AIChatAssistant = () => {
             disabled={isLoading}
             autoFocus
           />
-          <Button type="submit" className="bg-rajasthan-blue" disabled={!inputValue.trim() || isLoading}>
-            <Send className="h-4 w-4" />
+          <Button 
+            type="submit" 
+            className="bg-rajasthan-blue hover:bg-rajasthan-blue/90 dark:bg-rajasthan-turquoise dark:hover:bg-rajasthan-turquoise/90" 
+            disabled={!inputValue.trim() || isLoading}
+          >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             <span className="sr-only">Send message</span>
           </Button>
         </form>
