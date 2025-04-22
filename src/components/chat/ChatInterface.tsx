@@ -9,31 +9,13 @@ import { Send, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-
-type ChatConnection = {
-  id: string;
-  name: string;
-  profileImage: string | null;
-  role: string;
-  lastMessage: string | null;
-  lastMessageTime: string | null;
-  unreadCount: number;
-};
-
-type Message = {
-  id: string;
-  senderId: string;
-  receiverId: string;
-  content: string;
-  timestamp: string;
-  read: boolean;
-};
+import { MessageType, ChatConnection } from "@/types/messages";
 
 export default function ChatInterface() {
   const { user } = useAuth();
   const [connections, setConnections] = useState<ChatConnection[]>([]);
   const [activeChat, setActiveChat] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<MessageType[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [activeChatUser, setActiveChatUser] = useState<ChatConnection | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,26 +37,18 @@ export default function ChatInterface() {
           filter: `receiver_id=eq.${user.id}`
         },
         (payload) => {
-          const newMessage = payload.new as any;
+          const newMessage = payload.new as unknown as MessageType;
           
           // Add the new message to the messages array if it's for the active chat
           if (activeChat === newMessage.sender_id) {
-            const formattedMessage: Message = {
-              id: newMessage.id,
-              senderId: newMessage.sender_id,
-              receiverId: newMessage.receiver_id,
-              content: newMessage.content,
-              timestamp: newMessage.timestamp,
-              read: newMessage.read
-            };
-            
-            setMessages(prev => [...prev, formattedMessage]);
+            setMessages(prev => [...prev, newMessage]);
             
             // Mark message as read if the chat is active
             supabase
               .from('messages')
               .update({ read: true })
-              .eq('id', newMessage.id);
+              .eq('id', newMessage.id)
+              .then();
           } else {
             // Update the unread count for the connection
             setConnections(prev => 
@@ -151,7 +125,7 @@ export default function ChatInterface() {
             .select('*')
             .or(`and(sender_id.eq.${user.id},receiver_id.eq.${connUser.id}),and(sender_id.eq.${connUser.id},receiver_id.eq.${user.id})`)
             .order('timestamp', { ascending: false })
-            .limit(1);
+            .limit(1) as { data: MessageType[] | null };
             
           // Count unread messages
           const { count: unreadCount } = await supabase
@@ -211,38 +185,30 @@ export default function ChatInterface() {
           .from('messages')
           .select('*')
           .or(`and(sender_id.eq.${user.id},receiver_id.eq.${activeChat}),and(sender_id.eq.${activeChat},receiver_id.eq.${user.id})`)
-          .order('timestamp', { ascending: true });
+          .order('timestamp', { ascending: true }) as { data: MessageType[] | null, error: any };
           
         if (error) throw error;
         
-        // Format messages for display
-        const formattedMessages: Message[] = data.map(msg => ({
-          id: msg.id,
-          senderId: msg.sender_id,
-          receiverId: msg.receiver_id,
-          content: msg.content,
-          timestamp: msg.timestamp,
-          read: msg.read
-        }));
-        
-        setMessages(formattedMessages);
-        
-        // Mark all messages from the active chat user as read
-        await supabase
-          .from('messages')
-          .update({ read: true })
-          .eq('sender_id', activeChat)
-          .eq('receiver_id', user.id)
-          .eq('read', false);
+        if (data) {
+          setMessages(data);
           
-        // Update the unread count for this connection to zero
-        setConnections(prev => 
-          prev.map(conn => 
-            conn.id === activeChat 
-              ? { ...conn, unreadCount: 0 }
-              : conn
-          )
-        );
+          // Mark all messages from the active chat user as read
+          await supabase
+            .from('messages')
+            .update({ read: true })
+            .eq('sender_id', activeChat)
+            .eq('receiver_id', user.id)
+            .eq('read', false);
+            
+          // Update the unread count for this connection to zero
+          setConnections(prev => 
+            prev.map(conn => 
+              conn.id === activeChat 
+                ? { ...conn, unreadCount: 0 }
+                : conn
+            )
+          );
+        }
         
       } catch (error) {
         console.error('Error fetching messages:', error);
@@ -273,39 +239,30 @@ export default function ChatInterface() {
           sender_id: user.id,
           receiver_id: activeChat,
           content: messageInput.trim(),
-          timestamp: new Date().toISOString(),
           read: false
         })
-        .select()
-        .single();
+        .select() as { data: MessageType[] | null, error: any };
       
       if (error) throw error;
       
-      // Add the new message to the messages array
-      const newMessage: Message = {
-        id: data.id,
-        senderId: data.sender_id,
-        receiverId: data.receiver_id,
-        content: data.content,
-        timestamp: data.timestamp,
-        read: data.read
-      };
-      
-      setMessages(prev => [...prev, newMessage]);
-      setMessageInput('');
-      
-      // Update the last message for this connection
-      setConnections(prev => 
-        prev.map(conn => 
-          conn.id === activeChat 
-            ? { 
-                ...conn, 
-                lastMessage: messageInput.trim(),
-                lastMessageTime: new Date().toISOString()
-              }
-            : conn
-        )
-      );
+      if (data && data.length > 0) {
+        // Add the new message to the messages array
+        setMessages(prev => [...prev, data[0]]);
+        setMessageInput('');
+        
+        // Update the last message for this connection
+        setConnections(prev => 
+          prev.map(conn => 
+            conn.id === activeChat 
+              ? { 
+                  ...conn, 
+                  lastMessage: messageInput.trim(),
+                  lastMessageTime: new Date().toISOString()
+                }
+              : conn
+          )
+        );
+      }
       
     } catch (error) {
       console.error('Error sending message:', error);
@@ -340,17 +297,6 @@ export default function ChatInterface() {
       return date.toLocaleDateString();
     }
   };
-
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Sign in to chat</h2>
-          <p className="text-muted-foreground">You need to be logged in to access your messages.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="h-[80vh] flex">
@@ -456,10 +402,10 @@ export default function ChatInterface() {
                               </div>
                             </div>
                           )}
-                          <div className={`flex ${message.senderId === user.id ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}>
                             <div 
                               className={`max-w-[70%] rounded-lg p-3 ${
-                                message.senderId === user.id 
+                                message.sender_id === user.id 
                                   ? 'bg-primary text-primary-foreground' 
                                   : 'bg-muted'
                               }`}
@@ -467,7 +413,7 @@ export default function ChatInterface() {
                               <p>{message.content}</p>
                               <div 
                                 className={`text-xs mt-1 ${
-                                  message.senderId === user.id 
+                                  message.sender_id === user.id 
                                     ? 'text-primary-foreground/70' 
                                     : 'text-muted-foreground'
                                 }`}

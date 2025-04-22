@@ -60,6 +60,33 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          content: string
+          id: string
+          read: boolean
+          receiver_id: string
+          sender_id: string
+          timestamp: string
+        }
+        Insert: {
+          content: string
+          id?: string
+          read?: boolean
+          receiver_id: string
+          sender_id: string
+          timestamp?: string
+        }
+        Update: {
+          content?: string
+          id?: string
+          read?: boolean
+          receiver_id?: string
+          sender_id?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           content: string
