@@ -1,12 +1,11 @@
 
-import React, { useState, useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
-import Header from "./Header";
+import React from "react";
+import { Outlet } from "react-router-dom";
+import { Header } from "./Header";  // Changed to named import
 import Footer from "./Footer";
 import { useAuth } from "@/context/AuthContext";
 
 export function MainLayout() {
-  const navigate = useNavigate();
   const auth = useAuth();
   
   return (
