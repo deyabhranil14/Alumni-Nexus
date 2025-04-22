@@ -13,18 +13,25 @@ const ThemeContext = createContext<ThemeContextType>({
   toggleTheme: () => {},
 });
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Check if theme is stored in localStorage
-    const savedTheme = localStorage.getItem("alumni-nexus-theme");
-    // Check system preferences if no saved theme
-    if (!savedTheme) {
-      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    // Check local storage only if running in browser
+    if (typeof window !== 'undefined') {
+      // Check if theme is stored in localStorage
+      const savedTheme = localStorage.getItem("alumni-nexus-theme");
+      // Check system preferences if no saved theme
+      if (!savedTheme) {
+        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      return (savedTheme as Theme) || "light";
     }
-    return (savedTheme as Theme) || "light";
+    return "light"; // Default theme for SSR
   });
 
   useEffect(() => {
+    // Skip effect if not in browser
+    if (typeof window === 'undefined') return;
+    
     // Apply theme to document
     if (theme === "dark") {
       document.documentElement.classList.add("dark");
