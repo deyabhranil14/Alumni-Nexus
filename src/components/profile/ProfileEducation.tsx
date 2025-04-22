@@ -9,9 +9,10 @@ import { UserEducation } from "@/types";
 interface ProfileEducationProps {
   education: UserEducation[];
   isOwnProfile: boolean;
+  onAddEducation?: (education: UserEducation) => Promise<void>;
 }
 
-export function ProfileEducation({ education, isOwnProfile }: ProfileEducationProps) {
+export function ProfileEducation({ education, isOwnProfile, onAddEducation }: ProfileEducationProps) {
   return (
     <Card>
       <CardHeader>

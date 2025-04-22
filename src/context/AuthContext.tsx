@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { User as AppUser, UserRole } from "@/types";
@@ -30,7 +31,7 @@ interface AuthContextType {
   logout: () => Promise<{ success: boolean; error?: any }>;
   refreshUser: () => Promise<AppUser | null>;
   updateGuestInfo: (name: string, email: string) => void;
-  updateUserProfile: (profileData: Partial<User>) => void;
+  updateUserProfile: (profileData: Partial<AppUser>) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -43,7 +44,7 @@ const AuthContext = createContext<AuthContextType>({
   logout: async () => ({ success: false, error: "AuthContext not initialized" }),
   refreshUser: async () => null,
   updateGuestInfo: () => {},
-  updateUserProfile: () => {},
+  updateUserProfile: async () => false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -184,6 +185,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(updatedUser);
     localStorage.setItem('guestUser', JSON.stringify(updatedUser));
     toast.success("Guest information updated!");
+  };
+
+  const updateUserProfile = async (profileData: Partial<AppUser>): Promise<boolean> => {
+    try {
+      if (isGuest) {
+        // For guest users, just update local state
+        if (!user) return false;
+        
+        const updatedUser = {
+          ...user,
+          ...profileData
+        };
+        
+        setUser(updatedUser);
+        localStorage.setItem('guestUser', JSON.stringify(updatedUser));
+        toast.success("Profile updated successfully!");
+        return true;
+      } else {
+        // For real users, update the database
+        if (!user?.id) return false;
+        
+        const { error } = await supabase
+          .from('users')
+          .update({
+            name: profileData.name,
+            bio: profileData.bio,
+            location: profileData.location,
+            profile_image: profileData.profileImage,
+            cover_image: profileData.coverImage
+          })
+          .eq('id', user.id);
+          
+        if (error) {
+          console.error("Error updating user profile:", error);
+          toast.error("Failed to update profile");
+          return false;
+        }
+        
+        // Update local state
+        setUser({
+          ...user,
+          ...profileData
+        });
+        
+        toast.success("Profile updated successfully!");
+        return true;
+      }
+    } catch (error) {
+      console.error("Error in updateUserProfile:", error);
+      toast.error("Failed to update profile");
+      return false;
+    }
   };
 
   const refreshUser = async () => {
@@ -331,4 +384,5 @@ export function useAuth() {
   return context;
 }
 
-export type AuthContextType = ReturnType<typeof useAuth>;
+// Remove the duplicate type declaration
+// export type AuthContextType = ReturnType<typeof useAuth>;

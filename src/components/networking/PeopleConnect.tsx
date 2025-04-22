@@ -50,55 +50,78 @@ const PeopleConnect = () => {
     queryFn: async () => {
       if (!user?.id) return { connections: [] };
       
-      // Get outgoing connections (where user is mentee)
-      const { data: outgoingConnections, error: outError } = await supabase
-        .from('mentorships')
-        .select(`
-          id,
-          status,
-          mentor:mentor_id (id, name, role, profile_image)
-        `)
-        .eq('mentee_id', user.id);
+      try {
+        // Get outgoing connections (where user is mentee)
+        const { data: outgoingConnections, error: outError } = await supabase
+          .from('mentorships')
+          .select('id, status, mentor_id')
+          .eq('mentee_id', user.id);
+          
+        if (outError) throw outError;
         
-      // Get incoming connections (where user is mentor)
-      const { data: incomingConnections, error: inError } = await supabase
-        .from('mentorships')
-        .select(`
-          id,
-          status,
-          mentee:mentee_id (id, name, role, profile_image)
-        `)
-        .eq('mentor_id', user.id);
+        // Get incoming connections (where user is mentor)
+        const { data: incomingConnections, error: inError } = await supabase
+          .from('mentorships')
+          .select('id, status, mentee_id')
+          .eq('mentor_id', user.id);
+          
+        if (inError) throw inError;
         
-      if (outError || inError) {
-        console.error("Error fetching connections:", outError || inError);
+        // Get user details for outgoing connections
+        const outgoingUserIds = outgoingConnections?.map(conn => conn.mentor_id) || [];
+        const { data: outgoingUsers, error: outUsersError } = outgoingUserIds.length > 0 
+          ? await supabase.from('users').select('id, name, role, profile_image').in('id', outgoingUserIds)
+          : { data: [], error: null };
+          
+        if (outUsersError) throw outUsersError;
+        
+        // Get user details for incoming connections
+        const incomingUserIds = incomingConnections?.map(conn => conn.mentee_id) || [];
+        const { data: incomingUsers, error: inUsersError } = incomingUserIds.length > 0
+          ? await supabase.from('users').select('id, name, role, profile_image').in('id', incomingUserIds)
+          : { data: [], error: null };
+          
+        if (inUsersError) throw inUsersError;
+        
+        // Format outgoing connections
+        const formattedOutgoing = outgoingConnections?.map(conn => {
+          const userData = outgoingUsers?.find(u => u.id === conn.mentor_id);
+          if (!userData) return null;
+          
+          return {
+            id: userData.id,
+            name: userData.name,
+            role: userData.role,
+            profile_image: userData.profile_image,
+            connectionStatus: conn.status === 'active' ? 'connected' as ConnectionStatus : 'pending' as ConnectionStatus,
+            connectionId: conn.id
+          };
+        }).filter(Boolean) || [];
+        
+        // Format incoming connections
+        const formattedIncoming = incomingConnections?.map(conn => {
+          const userData = incomingUsers?.find(u => u.id === conn.mentee_id);
+          if (!userData) return null;
+          
+          return {
+            id: userData.id,
+            name: userData.name,
+            role: userData.role,
+            profile_image: userData.profile_image,
+            connectionStatus: conn.status === 'active' ? 'connected' as ConnectionStatus : 'pending' as ConnectionStatus,
+            connectionId: conn.id
+          };
+        }).filter(Boolean) || [];
+        
+        // Combine connections
+        const allConnections = [...formattedOutgoing, ...formattedIncoming];
+        
+        return { connections: allConnections };
+      } catch (error) {
+        console.error("Error fetching connections:", error);
+        toast.error("Failed to load connections");
         return { connections: [] };
       }
-      
-      // Format outgoing connections
-      const formattedOutgoing = outgoingConnections?.map(conn => ({
-        id: conn.mentor.id,
-        name: conn.mentor.name,
-        role: conn.mentor.role,
-        profile_image: conn.mentor.profile_image,
-        connectionStatus: conn.status === 'active' ? 'connected' as ConnectionStatus : 'pending' as ConnectionStatus,
-        connectionId: conn.id
-      })) || [];
-      
-      // Format incoming connections
-      const formattedIncoming = incomingConnections?.map(conn => ({
-        id: conn.mentee.id,
-        name: conn.mentee.name,
-        role: conn.mentee.role,
-        profile_image: conn.mentee.profile_image,
-        connectionStatus: conn.status === 'active' ? 'connected' as ConnectionStatus : 'pending' as ConnectionStatus,
-        connectionId: conn.id
-      })) || [];
-      
-      // Combine connections
-      const allConnections = [...formattedOutgoing, ...formattedIncoming];
-      
-      return { connections: allConnections };
     },
     enabled: !!user?.id
   });

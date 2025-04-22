@@ -8,9 +8,10 @@ import { UserSkill } from "@/types";
 interface ProfileSkillsProps {
   skills: UserSkill[];
   isOwnProfile: boolean;
+  onAddSkill?: (skill: UserSkill) => Promise<void>;
 }
 
-export function ProfileSkills({ skills, isOwnProfile }: ProfileSkillsProps) {
+export function ProfileSkills({ skills, isOwnProfile, onAddSkill }: ProfileSkillsProps) {
   // Add console log to debug skills rendering
   console.log("ProfileSkills - Rendering with skills:", skills);
   

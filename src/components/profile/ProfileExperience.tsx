@@ -9,9 +9,10 @@ import { UserExperience } from "@/types";
 interface ProfileExperienceProps {
   experience: UserExperience[];
   isOwnProfile: boolean;
+  onAddExperience?: (experience: UserExperience) => Promise<void>;
 }
 
-export function ProfileExperience({ experience, isOwnProfile }: ProfileExperienceProps) {
+export function ProfileExperience({ experience, isOwnProfile, onAddExperience }: ProfileExperienceProps) {
   return (
     <Card>
       <CardHeader>
