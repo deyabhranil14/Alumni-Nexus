@@ -1,268 +1,255 @@
 
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Home, User, Briefcase, Users, LogOut, LogIn, Menu, X, Moon, Sun, Bot, MessageCircle } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { UserAvatar } from "../ui/user-avatar";
+import {
+  Search,
+  Bell,
+  Menu,
+  MessageSquare,
+  LogOut,
+  Settings,
+  User,
+  LogIn,
+  UserPlus,
+  Home,
+  BookOpen,
+  Network,
+  GraduationCap,
+  Sparkles,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useTheme } from "@/context/ThemeContext";
+import { Badge } from "@/components/ui/badge";
+import { useMobile } from "@/hooks/use-mobile";
 
-const Header = () => {
+export function Header() {
+  const { user, logout, isGuest } = useAuth();
   const navigate = useNavigate();
-  const { user, logout, isGuest, updateGuestInfo } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const location = useLocation();
+  const isMobile = useMobile();
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
-  // Get first letter of name for avatar fallback
-  const getInitials = () => {
-    if (!user?.name) return "U";
-    return user.name.charAt(0).toUpperCase();
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
   };
-  
+
   const handleLogout = async () => {
-    const { success } = await logout();
-    if (success) {
-      navigate("/");
-    }
+    await logout();
+    navigate("/");
   };
-  
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
+
+  const navItems = [
+    { name: "Home", href: "/", icon: <Home className="h-4 w-4 mr-2" /> },
+    {
+      name: "Dashboard",
+      href: "/dashboard",
+      icon: <BookOpen className="h-4 w-4 mr-2" />,
+    },
+    {
+      name: "Network",
+      href: "/network",
+      icon: <Network className="h-4 w-4 mr-2" />,
+    },
+    {
+      name: "Mentorship",
+      href: "/mentorship",
+      icon: <GraduationCap className="h-4 w-4 mr-2" />,
+    },
+    {
+      name: "AI Assistant",
+      href: "/assistant",
+      icon: <Sparkles className="h-4 w-4 mr-2" />,
+    },
+  ];
+
+  const isActive = (path: string) => {
+    if (path === "/" && location.pathname === "/") return true;
+    if (path !== "/" && location.pathname.startsWith(path)) return true;
+    return false;
   };
 
   return (
-    <header className="bg-white dark:bg-gray-900 shadow-sm border-b py-4 px-6 sticky top-0 z-50 transition-colors duration-200">
-      <div className="container mx-auto">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <img 
-              src="/logo.svg" 
-              alt="Alumni Nexus Logo" 
-              className="h-8 w-auto mr-2"
-            />
-            <span className="text-xl font-bold text-rajasthan-blue dark:text-rajasthan-turquoise">
-              Alumni Nexus
-            </span>
+    <header className="border-b bg-background sticky top-0 z-50">
+      <div className="container flex h-16 items-center px-4">
+        <div className="flex items-center md:gap-4 md:mr-6">
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild className="md:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="mr-2"
+                aria-label="Menu"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left">
+              <SheetHeader className="mb-4">
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+              <nav className="flex flex-col gap-2">
+                {navItems.map((item) => (
+                  <Button
+                    key={item.name}
+                    variant={isActive(item.href) ? "default" : "ghost"}
+                    className="justify-start"
+                    asChild
+                    onClick={closeMobileMenu}
+                  >
+                    <Link to={item.href}>
+                      {item.icon}
+                      {item.name}
+                    </Link>
+                  </Button>
+                ))}
+              </nav>
+            </SheetContent>
+          </Sheet>
+
+          <Link
+            to="/"
+            className="flex items-center gap-2 font-semibold text-xl text-foreground"
+          >
+            <img src="/logo.svg" alt="Logo" className="h-8 w-8" />
+            <span className="hidden sm:inline">Alumni Nexus</span>
           </Link>
-          
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-1">
-            <Link to="/home" className="px-3 py-2 text-sm rounded-md hover:bg-muted dark:hover:bg-gray-800 transition-colors">
-              Home
-            </Link>
-            <Link to="/dashboard" className="px-3 py-2 text-sm rounded-md hover:bg-muted dark:hover:bg-gray-800 transition-colors">
-              Dashboard
-            </Link>
-            <Link to="/mentorship" className="px-3 py-2 text-sm rounded-md hover:bg-muted dark:hover:bg-gray-800 transition-colors">
-              Mentorship
-            </Link>
-            <Link to="/network" className="px-3 py-2 text-sm rounded-md hover:bg-muted dark:hover:bg-gray-800 transition-colors">
-              Network
-            </Link>
-            <Link to="/assistant" className="px-3 py-2 text-sm rounded-md hover:bg-muted dark:hover:bg-gray-800 transition-colors">
-              AI Assistant
-            </Link>
-          </nav>
-          
-          {/* User Actions */}
-          <div className="flex items-center space-x-3">
-            {/* Theme Toggle Button */}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={toggleTheme}
-              className="rounded-full"
-              aria-label="Toggle theme"
+        </div>
+
+        <nav className="hidden md:flex items-center gap-1 ml-2">
+          {navItems.map((item) => (
+            <Button
+              key={item.name}
+              variant={isActive(item.href) ? "default" : "ghost"}
+              asChild
             >
-              {theme === 'dark' ? (
-                <Sun className="h-5 w-5 text-yellow-400" />
-              ) : (
-                <Moon className="h-5 w-5 text-rajasthan-blue" />
-              )}
+              <Link to={item.href}>{item.name}</Link>
             </Button>
-            
-            {/* Authentication Actions */}
-            {user ? (
+          ))}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-2">
+          {!isMobile && (
+            <form className="relative mr-2">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <input
+                type="search"
+                placeholder="Search..."
+                className="rounded-full bg-background pl-8 pr-3 py-2 text-sm border border-input focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </form>
+          )}
+
+          {user ? (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                className="relative"
+                aria-label="Messages"
+              >
+                <Link to="/chat">
+                  <MessageSquare className="h-5 w-5" />
+                  <Badge
+                    variant="secondary"
+                    className="absolute -top-1 -right-1 px-1 min-w-[18px] h-[18px] flex items-center justify-center text-xs"
+                  >
+                    0
+                  </Badge>
+                </Link>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                aria-label="Notifications"
+              >
+                <Bell className="h-5 w-5" />
+                <Badge
+                  variant="secondary"
+                  className="absolute -top-1 -right-1 px-1 min-w-[18px] h-[18px] flex items-center justify-center text-xs"
+                >
+                  0
+                </Badge>
+              </Button>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative rounded-full h-8 w-8 p-0 border">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.profileImage || ""} alt={user.name || "User"} />
-                      <AvatarFallback className="bg-rajasthan-blue text-white">
-                        {getInitials()}
-                      </AvatarFallback>
-                    </Avatar>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full"
+                    aria-label="User menu"
+                  >
+                    <UserAvatar />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 mt-1" align="end">
+                <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>
-                    <div className="flex flex-col">
-                      <span>{user.name || "User"}</span>
-                      <span className="text-xs text-muted-foreground dark:text-gray-400">{user.email}</span>
-                      {isGuest && (
-                        <span className="text-xs text-rajasthan-saffron font-medium mt-1">Guest User</span>
-                      )}
-                    </div>
+                    {isGuest ? "Guest User" : user.name || "User"}
+                    {isGuest && (
+                      <p className="text-xs font-normal text-muted-foreground">
+                        Limited access
+                      </p>
+                    )}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={() => navigate("/profile")}>
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/dashboard")}>
-                      <Briefcase className="mr-2 h-4 w-4" />
-                      <span>Dashboard</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/network")}>
-                      <Users className="mr-2 h-4 w-4" />
-                      <span>Network</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/assistant")}>
-                      <Bot className="mr-2 h-4 w-4" />
-                      <span>AI Assistant</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/mentorship")}>
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      <span>Mentorship</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="cursor-pointer">
+                      <User className="h-4 w-4 mr-2" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings" className="cursor-pointer">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  {isGuest ? (
-                    <>
-                      <DropdownMenuItem onClick={() => navigate("/login")}>
-                        <LogIn className="mr-2 h-4 w-4" />
-                        <span>Log in</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate("/register")}>
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Create Account</span>
-                      </DropdownMenuItem>
-                    </>
-                  ) : (
-                    <DropdownMenuItem onClick={handleLogout}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
-                    </DropdownMenuItem>
-                  )}
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Log out
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="hidden md:inline-flex"
-                  onClick={() => navigate("/login")}
-                >
-                  Log in
-                </Button>
-                <Button 
-                  size="sm"
-                  className="hidden md:inline-flex"
-                  onClick={() => navigate("/register")}
-                >
-                  Sign up
-                </Button>
-              </div>
-            )}
-            
-            {/* Mobile Menu Toggle */}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="md:hidden"
-              onClick={toggleMobileMenu}
-              aria-label="Toggle mobile menu"
-            >
-              {mobileMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </Button>
-          </div>
-        </div>
-        
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="mt-4 pb-3 md:hidden">
-            <div className="space-y-1">
-              <Link 
-                to="/home" 
-                className="block px-3 py-2 text-base font-medium rounded-md hover:bg-muted dark:hover:bg-gray-800"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Home
-              </Link>
-              <Link 
-                to="/dashboard" 
-                className="block px-3 py-2 text-base font-medium rounded-md hover:bg-muted dark:hover:bg-gray-800"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Dashboard
-              </Link>
-              <Link 
-                to="/mentorship" 
-                className="block px-3 py-2 text-base font-medium rounded-md hover:bg-muted dark:hover:bg-gray-800"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Mentorship
-              </Link>
-              <Link 
-                to="/network" 
-                className="block px-3 py-2 text-base font-medium rounded-md hover:bg-muted dark:hover:bg-gray-800"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Network
-              </Link>
-              <Link 
-                to="/assistant" 
-                className="block px-3 py-2 text-base font-medium rounded-md hover:bg-muted dark:hover:bg-gray-800"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                AI Assistant
-              </Link>
-              
-              {!user && (
-                <div className="pt-3 border-t border-muted mt-3 flex flex-col space-y-2">
-                  <Button 
-                    onClick={() => {
-                      navigate("/login");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    Log in
-                  </Button>
-                  <Button 
-                    onClick={() => {
-                      navigate("/register");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full"
-                  >
-                    Sign up
-                  </Button>
-                </div>
-              )}
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button asChild variant="ghost">
+                <Link to="/login">
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Login
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link to="/register">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Register
+                </Link>
+              </Button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </header>
   );
-};
-
-export default Header;
+}
