@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -237,9 +236,9 @@ export default function UserProfile() {
         degree: edu.degree,
         institution: edu.institution,
         fieldOfStudy: edu.field_of_study,
-        startYear: edu.start_year,
-        endYear: edu.end_year,
-        isOngoing: edu.is_ongoing
+        startYear: edu.startYear,
+        endYear: edu.endYear,
+        isOngoing: edu.isOngoing
       })) : [];
       
       setEducation(transformedEducation);
@@ -329,6 +328,18 @@ export default function UserProfile() {
       toast.error("Failed to add skill");
     }
   };
+
+  // Add a logging statement to help with debugging
+  console.log("UserProfile rendering state:", { 
+    loading, 
+    error, 
+    profileUser: profileUser?.id, 
+    currentUser: currentUser?.id,
+    isGuest, 
+    userId, 
+    isOwnProfile,
+    skillsCount: skills.length 
+  });
 
   if (loading) {
     return (
