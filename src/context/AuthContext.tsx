@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { User as AppUser, UserRole } from "@/types";
@@ -31,9 +30,9 @@ interface AuthContextType {
   logout: () => Promise<{ success: boolean; error?: any }>;
   refreshUser: () => Promise<AppUser | null>;
   updateGuestInfo: (name: string, email: string) => void;
+  updateUserProfile: (profileData: Partial<User>) => void;
 }
 
-// Create the context with default values
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
@@ -44,15 +43,15 @@ const AuthContext = createContext<AuthContextType>({
   logout: async () => ({ success: false, error: "AuthContext not initialized" }),
   refreshUser: async () => null,
   updateGuestInfo: () => {},
+  updateUserProfile: () => {},
 });
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(true);
 
-  // Load guest user from localStorage on initial render if available
   useEffect(() => {
     const savedGuestUser = localStorage.getItem('guestUser');
     if (savedGuestUser) {
@@ -86,10 +85,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (userProfile) {
                 setUser(userProfile);
                 setIsGuest(false);
-                // Clear guest user from localStorage when logged in
                 localStorage.removeItem('guestUser');
               } else {
-                // If can't get user profile, fallback to guest
                 const newGuestUser = createGuestUser();
                 setUser(newGuestUser);
                 setIsGuest(true);
@@ -130,18 +127,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (userProfile) {
               setUser(userProfile);
               setIsGuest(false);
-              // Clear guest user from localStorage when logged in
               localStorage.removeItem('guestUser');
               setLoading(false);
-              return; // Exit early if we successfully loaded a user profile
+              return;
             }
           } catch (error) {
             console.error("Error loading initial user profile:", error);
           }
         }
         
-        // If we reach here, we either don't have a session or couldn't load the profile
-        // Check for a saved guest user
         const savedGuestUser = localStorage.getItem('guestUser');
         if (savedGuestUser) {
           try {
@@ -209,7 +203,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
       
-      // If we can't get a user profile, use the guest user
       const savedGuestUser = localStorage.getItem('guestUser');
       if (savedGuestUser) {
         try {
@@ -244,7 +237,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log("Registering new user with data:", { ...data, password: '***hidden***' });
     setLoading(true);
     try {
-      // Update the redirect URL to use the current origin instead of localhost
       const currentOrigin = window.location.origin;
       const result = await registerUser(data, currentOrigin);
       
@@ -320,7 +312,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     register,
     logout,
     refreshUser,
-    updateGuestInfo
+    updateGuestInfo,
+    updateUserProfile,
   };
 
   return (
@@ -328,12 +321,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
+export function useAuth() {
+  const context = React.useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-};
+}
+
+export type AuthContextType = ReturnType<typeof useAuth>;

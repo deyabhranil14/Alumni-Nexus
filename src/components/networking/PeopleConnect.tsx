@@ -8,7 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Search, User, MessageSquare, UserPlus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { v4 as uuidv4 } from "uuid";
+import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 
 type ConnectionStatus = "none" | "pending" | "connected";
 
@@ -16,154 +19,144 @@ type NetworkUser = {
   id: string;
   name: string;
   role: string;
-  title?: string;
-  company?: string;
-  institution?: string;
-  course?: string;
-  profileImage?: string;
+  profile_image?: string;
   connectionStatus: ConnectionStatus;
-  skills: string[];
+  connectionId?: string;
 };
 
-// Sample data for demonstration
-const sampleUsers: NetworkUser[] = [
-  {
-    id: "user1",
-    name: "Dr. Rajesh Kumar",
-    role: "faculty",
-    title: "Professor",
-    company: "IIT Delhi",
-    profileImage: "https://i.pravatar.cc/150?img=10",
-    connectionStatus: "none",
-    skills: ["Machine Learning", "Computer Vision", "Neural Networks"],
-  },
-  {
-    id: "user2",
-    name: "Priya Sharma",
-    role: "alumni",
-    title: "Senior Software Engineer",
-    company: "Microsoft",
-    profileImage: "https://i.pravatar.cc/150?img=28",
-    connectionStatus: "none",
-    skills: ["React", "TypeScript", "Cloud Computing"],
-  },
-  {
-    id: "user3",
-    name: "Amit Singh",
-    role: "student",
-    course: "Computer Science",
-    institution: "IIIT Hyderabad",
-    profileImage: "https://i.pravatar.cc/150?img=15",
-    connectionStatus: "none",
-    skills: ["Python", "Data Science", "Web Development"],
-  },
-  {
-    id: "user4",
-    name: "Neha Reddy",
-    role: "alumni",
-    title: "Product Manager",
-    company: "Amazon",
-    profileImage: "https://i.pravatar.cc/150?img=23",
-    connectionStatus: "none",
-    skills: ["Product Strategy", "UI/UX", "Agile"],
-  },
-  {
-    id: "user5",
-    name: "Vikram Verma",
-    role: "alumni",
-    title: "Startup Founder",
-    company: "TechNova",
-    profileImage: "https://i.pravatar.cc/150?img=12",
-    connectionStatus: "none",
-    skills: ["Entrepreneurship", "Business Development", "Leadership"],
-  },
-  {
-    id: "user6",
-    name: "Anjali Gupta",
-    role: "student",
-    course: "Electronics Engineering",
-    institution: "Delhi Technological University",
-    profileImage: "https://i.pravatar.cc/150?img=25",
-    connectionStatus: "none",
-    skills: ["Circuit Design", "IoT", "Embedded Systems"],
-  },
-];
+// Animation variants
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+};
 
 const PeopleConnect = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [users, setUsers] = useState<NetworkUser[]>(sampleUsers);
-  const [filteredUsers, setFilteredUsers] = useState<NetworkUser[]>(sampleUsers);
-
-  // Load data from localStorage on component mount
-  useEffect(() => {
-    const storedUsers = localStorage.getItem("networkUsers");
-    if (storedUsers) {
-      try {
-        const parsedUsers = JSON.parse(storedUsers);
-        setUsers(parsedUsers);
-        setFilteredUsers(parsedUsers);
-      } catch (error) {
-        console.error("Error parsing stored users:", error);
-        setUsers(sampleUsers);
-        setFilteredUsers(sampleUsers);
+  
+  // Fetch user connections
+  const { data: connectionsData, isLoading: loadingConnections, refetch: refetchConnections } = useQuery({
+    queryKey: ['my-connections', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return { connections: [] };
+      
+      // Get outgoing connections (where user is mentee)
+      const { data: outgoingConnections, error: outError } = await supabase
+        .from('mentorships')
+        .select(`
+          id,
+          status,
+          mentor:mentor_id (id, name, role, profile_image)
+        `)
+        .eq('mentee_id', user.id);
+        
+      // Get incoming connections (where user is mentor)
+      const { data: incomingConnections, error: inError } = await supabase
+        .from('mentorships')
+        .select(`
+          id,
+          status,
+          mentee:mentee_id (id, name, role, profile_image)
+        `)
+        .eq('mentor_id', user.id);
+        
+      if (outError || inError) {
+        console.error("Error fetching connections:", outError || inError);
+        return { connections: [] };
       }
-    }
-  }, []);
-
-  // Save to localStorage whenever users change
-  useEffect(() => {
-    localStorage.setItem("networkUsers", JSON.stringify(users));
-  }, [users]);
-
-  // Filter users based on search term
-  useEffect(() => {
-    if (!searchTerm.trim()) {
-      setFilteredUsers(users);
+      
+      // Format outgoing connections
+      const formattedOutgoing = outgoingConnections?.map(conn => ({
+        id: conn.mentor.id,
+        name: conn.mentor.name,
+        role: conn.mentor.role,
+        profile_image: conn.mentor.profile_image,
+        connectionStatus: conn.status === 'active' ? 'connected' as ConnectionStatus : 'pending' as ConnectionStatus,
+        connectionId: conn.id
+      })) || [];
+      
+      // Format incoming connections
+      const formattedIncoming = incomingConnections?.map(conn => ({
+        id: conn.mentee.id,
+        name: conn.mentee.name,
+        role: conn.mentee.role,
+        profile_image: conn.mentee.profile_image,
+        connectionStatus: conn.status === 'active' ? 'connected' as ConnectionStatus : 'pending' as ConnectionStatus,
+        connectionId: conn.id
+      })) || [];
+      
+      // Combine connections
+      const allConnections = [...formattedOutgoing, ...formattedIncoming];
+      
+      return { connections: allConnections };
+    },
+    enabled: !!user?.id
+  });
+  
+  // Filter connections based on search term
+  const filteredConnections = searchTerm.trim() === ''
+    ? connectionsData?.connections || []
+    : (connectionsData?.connections || []).filter(
+        connection => connection.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                     connection.role.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+  
+  const handleConnectionAction = async (networkUser: NetworkUser) => {
+    if (!user) {
+      toast.error("You must be logged in to perform this action");
       return;
     }
-
-    const filtered = users.filter(
-      (user) =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.institution?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.skills.some((skill) =>
-          skill.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-    );
-    setFilteredUsers(filtered);
-  }, [searchTerm, users]);
-
-  const handleConnectionAction = (userId: string) => {
-    setUsers(
-      users.map((u) => {
-        if (u.id === userId) {
-          let newStatus: ConnectionStatus = "none";
-          let message = "";
-
-          switch (u.connectionStatus) {
-            case "none":
-              newStatus = "pending";
-              message = `Connection request sent to ${u.name}`;
-              break;
-            case "pending":
-              newStatus = "connected";
-              message = `You are now connected with ${u.name}`;
-              break;
-            case "connected":
-              newStatus = "none";
-              message = `Connection with ${u.name} has been removed`;
-              break;
+    
+    try {
+      switch (networkUser.connectionStatus) {
+        case "pending":
+          // Accept connection request
+          if (networkUser.connectionId) {
+            const { error } = await supabase
+              .from('mentorships')
+              .update({ status: 'active' })
+              .eq('id', networkUser.connectionId);
+              
+            if (error) throw error;
+            
+            // Create notification
+            await supabase
+              .from('notifications')
+              .insert({
+                user_id: networkUser.id,
+                type: 'connection_accepted',
+                content: `${user.name || 'A user'} accepted your connection request`,
+                link_to: `/profile/${user.id}`
+              });
+              
+            toast.success(`You are now connected with ${networkUser.name}`);
+            refetchConnections();
           }
-
-          toast.success(message);
-          return { ...u, connectionStatus: newStatus };
-        }
-        return u;
-      })
-    );
+          break;
+          
+        case "connected":
+          // Open chat
+          toast.success(`Opening chat with ${networkUser.name}`);
+          break;
+          
+        default:
+          toast.error("Invalid connection status");
+          break;
+      }
+    } catch (error) {
+      console.error("Error managing connection:", error);
+      toast.error("Failed to perform action");
+    }
   };
 
   const getConnectionButtonText = (status: ConnectionStatus) => {
@@ -176,7 +169,7 @@ const PeopleConnect = () => {
           </>
         );
       case "pending":
-        return "Pending";
+        return "Accept Request";
       case "connected":
         return "Message";
       default:
@@ -197,83 +190,110 @@ const PeopleConnect = () => {
     }
   };
 
+  if (!user) {
+    return (
+      <div className="text-center py-8">
+        <h2 className="text-xl font-semibold mb-2">Sign in to view connections</h2>
+        <p className="text-muted-foreground mb-4">You need to be logged in to see your connections.</p>
+        <Button asChild>
+          <Link to="/login">Go to Login</Link>
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-3xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Connect with Alumni & Students</h1>
+        <h1 className="text-2xl font-bold mb-2">My Connections</h1>
         <p className="text-muted-foreground">
-          Expand your network by connecting with alumni, students, and faculty
+          View and manage your connections with alumni, students, and faculty
         </p>
       </div>
 
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search by name, role, company, or skills..."
+          placeholder="Search connections..."
           className="pl-10"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredUsers.map((networkUser) => (
-          <Card key={networkUser.id} className="overflow-hidden">
-            <CardHeader className="pb-2">
-              <div className="flex items-start gap-3">
-                <Avatar className="h-14 w-14">
-                  {networkUser.profileImage ? (
-                    <AvatarImage src={networkUser.profileImage} alt={networkUser.name} />
-                  ) : (
-                    <User className="h-8 w-8" />
+      {loadingConnections ? (
+        <div className="text-center py-12">
+          <div className="w-12 h-12 border-4 border-rajasthan-blue border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-muted-foreground">Loading connections...</p>
+        </div>
+      ) : filteredConnections.length > 0 ? (
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          variants={container}
+          initial="hidden"
+          animate="show"
+        >
+          {filteredConnections.map((connection) => (
+            <motion.div key={connection.id} variants={item}>
+              <Card className="overflow-hidden hover:shadow-md transition-shadow duration-300">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-14 w-14">
+                      {connection.profile_image ? (
+                        <AvatarImage src={connection.profile_image} alt={connection.name} />
+                      ) : (
+                        <AvatarFallback>
+                          {connection.name.charAt(0)}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    <div>
+                      <Link to={`/profile/${connection.id}`} className="font-semibold hover:text-rajasthan-blue transition-colors">
+                        {connection.name}
+                      </Link>
+                      <p className="text-sm text-muted-foreground">{connection.role}</p>
+                      <Badge variant="outline" className="mt-1 capitalize">
+                        {connection.connectionStatus === 'pending' ? 'Request Pending' : connection.connectionStatus}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardFooter className="border-t flex justify-between p-3">
+                  <Button
+                    variant={getConnectionButtonVariant(connection.connectionStatus)}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleConnectionAction(connection)}
+                  >
+                    {getConnectionButtonText(connection.connectionStatus)}
+                  </Button>
+                  {connection.connectionStatus === "connected" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="ml-2"
+                      asChild
+                    >
+                      <Link to={`/chat?userId=${connection.id}`}>
+                        <MessageSquare className="h-4 w-4" />
+                      </Link>
+                    </Button>
                   )}
-                  <AvatarFallback>{networkUser.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-semibold">{networkUser.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {networkUser.title || networkUser.course}{" "}
-                    {networkUser.company && `at ${networkUser.company}`}
-                    {networkUser.institution && `at ${networkUser.institution}`}
-                  </p>
-                  <Badge variant="outline" className="mt-1 capitalize">
-                    {networkUser.role}
-                  </Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0 pb-3">
-              <div className="flex flex-wrap gap-1 mt-2">
-                {networkUser.skills.slice(0, 3).map((skill, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {skill}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-            <CardFooter className="border-t flex justify-between p-3">
-              <Button
-                variant={getConnectionButtonVariant(networkUser.connectionStatus)}
-                size="sm"
-                className="flex-1"
-                onClick={() => handleConnectionAction(networkUser.id)}
-              >
-                {getConnectionButtonText(networkUser.connectionStatus)}
-              </Button>
-              {networkUser.connectionStatus === "connected" && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="ml-2"
-                  onClick={() => toast.success(`Opening chat with ${networkUser.name}`)}
-                >
-                  <MessageSquare className="h-4 w-4" />
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
+                </CardFooter>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
+      ) : (
+        <div className="text-center py-12 bg-muted/20 rounded-lg">
+          <User className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+          <h3 className="text-lg font-medium">No connections yet</h3>
+          <p className="text-muted-foreground mb-4">Start connecting with others to build your network</p>
+          <Button asChild>
+            <Link to="/network?tab=search">Find People</Link>
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
