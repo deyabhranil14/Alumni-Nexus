@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -43,12 +42,17 @@ export default function ChatInterface() {
           if (activeChat === newMessage.sender_id) {
             setMessages(prev => [...prev, newMessage]);
             
-            // Mark message as read if the chat is active
+            // Mark message as read immediately if the chat is active
             supabase
               .from('messages')
               .update({ read: true })
               .eq('id', newMessage.id)
-              .then();
+              .then(() => {
+                console.log("Message marked as read:", newMessage.id);
+              })
+              .catch(err => {
+                console.error("Error marking message as read:", err);
+              });
           } else {
             // Update the unread count for the connection
             setConnections(prev => 
@@ -192,24 +196,37 @@ export default function ChatInterface() {
         if (data) {
           setMessages(data);
           
-          // Mark all messages from the active chat user as read
-          await supabase
-            .from('messages')
-            .update({ read: true })
-            .eq('sender_id', activeChat)
-            .eq('receiver_id', user.id)
-            .eq('read', false);
-            
-          // Update the unread count for this connection to zero
-          setConnections(prev => 
-            prev.map(conn => 
-              conn.id === activeChat 
-                ? { ...conn, unreadCount: 0 }
-                : conn
-            )
+          // Mark all unread messages from the active chat user as read
+          const unreadMessages = data.filter(msg => 
+            msg.sender_id === activeChat && 
+            msg.receiver_id === user.id && 
+            !msg.read
           );
+          
+          if (unreadMessages.length > 0) {
+            console.log(`Marking ${unreadMessages.length} messages as read`);
+            
+            const { error: updateError } = await supabase
+              .from('messages')
+              .update({ read: true })
+              .in('id', unreadMessages.map(msg => msg.id));
+              
+            if (updateError) {
+              console.error("Error marking messages as read:", updateError);
+            } else {
+              console.log("Successfully marked messages as read");
+              
+              // Update the unread count for this connection to zero
+              setConnections(prev => 
+                prev.map(conn => 
+                  conn.id === activeChat 
+                    ? { ...conn, unreadCount: 0 }
+                    : conn
+                )
+              );
+            }
+          }
         }
-        
       } catch (error) {
         console.error('Error fetching messages:', error);
         toast.error('Failed to load messages');

@@ -1,148 +1,144 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ProfileEducation from "@/components/profile/ProfileEducation";
+import ProfileExperience from "@/components/profile/ProfileExperience";
+import ProfileSkills from "@/components/profile/ProfileSkills";
 
 interface UserProfileProps {
   // Add props here if needed
 }
 
-interface Education {
-  id: string;
-  institution: string;
-  degree: string;
-  field_of_study: string;
-  start_year: number;
-  end_year?: number;
-  is_ongoing: boolean;
-}
-
-interface Experience {
-  id: string;
-  company: string;
-  title: string;
-  start_date: string;
-  end_date?: string;
-  is_current: boolean;
-  description: string;
-}
-
 const UserProfile: React.FC<UserProfileProps> = () => {
-  const { user, isGuest } = useAuth();
+  const { user, isGuest, updateUserProfile } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
 
-  // Mock data for education
-  const education: Education[] = [
-    {
-      id: "1",
-      institution: "University of Rajasthan",
-      degree: "B.Tech",
-      field_of_study: "Computer Science",
-      start_year: 2016,
-      end_year: 2020,
-      is_ongoing: false,
-    },
-    {
-      id: "2",
-      institution: "BITS Pilani",
-      degree: "M.Tech",
-      field_of_study: "Computer Science",
-      start_year: 2020,
-      is_ongoing: true,
-    },
-  ];
+  const handleEditProfile = () => {
+    setIsEditing(true);
+  };
 
-  // Mock data for experience
-  const experience: Experience[] = [
-    {
-      id: "1",
-      company: "Google",
-      title: "Software Engineer",
-      start_date: "2020-06-01",
-      end_date: "2022-06-01",
-      is_current: false,
-      description: "Worked on the Search team.",
-    },
-    {
-      id: "2",
-      company: "Microsoft",
-      title: "Software Engineer",
-      start_date: "2022-06-01",
-      is_current: true,
-      description: "Working on the Azure team.",
-    },
-  ];
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  const handleSaveProfile = async (updatedData: any) => {
+    const success = await updateUserProfile(updatedData);
+    if (success) {
+      setIsEditing(false);
+    }
+  };
 
   if (!user) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div className="container mx-auto mt-8">
-      <Card className="w-full max-w-3xl mx-auto">
+    <div className="container mx-auto mt-8 space-y-8">
+      <Card className="w-full max-w-4xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">Profile</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src={user.profileImage || ""} alt={user.name || "User Avatar"} />
-              <AvatarFallback>{user.name?.charAt(0) || "U"}</AvatarFallback>
-            </Avatar>
-            <div>
-              <h2 className="text-lg font-semibold">{user.name || "Guest User"}</h2>
-              <p className="text-muted-foreground">{user.email}</p>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-xl font-semibold mb-2">Education</h3>
-            {education.map((edu) => (
-              <div key={edu.id} className="mb-4 last:mb-0">
-                <h4 className="font-semibold">{edu.institution}</h4>
-                <p className="text-muted-foreground">
-                  {edu.degree}, {edu.field_of_study}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {edu.start_year} - {edu.is_ongoing ? "Present" : edu.end_year}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div>
-            <h3 className="text-xl font-semibold mb-2">Experience</h3>
-            {experience.map((exp) => (
-              <div key={exp.id} className="mb-4 last:mb-0">
-                <h4 className="font-semibold">{exp.company}</h4>
-                <p className="text-muted-foreground">
-                  {exp.title}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {exp.start_date} - {exp.is_current ? "Present" : exp.end_date}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {exp.description}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-end">
-            {isGuest ? (
-              <Button asChild>
-                <Link to="/register">Register to Connect</Link>
-              </Button>
-            ) : (
-              <Button asChild>
-                <Link to="/settings">Edit Profile</Link>
-              </Button>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-2xl font-bold">Profile</CardTitle>
+            {!isEditing && !isGuest && (
+              <Button onClick={handleEditProfile}>Edit Profile</Button>
             )}
           </div>
+        </CardHeader>
+        <CardContent className="grid gap-6">
+          {isEditing ? (
+            <ProfileEditForm 
+              user={user} 
+              onSave={handleSaveProfile} 
+              onCancel={handleCancelEdit} 
+            />
+          ) : (
+            <>
+              <div className="flex items-center gap-4">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={user.profileImage || ""} alt={user.name || "User Avatar"} />
+                  <AvatarFallback>{user.name?.charAt(0) || "U"}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h2 className="text-2xl font-semibold">{user.name || "Guest User"}</h2>
+                  <p className="text-muted-foreground">{user.email}</p>
+                  {user.location && (
+                    <p className="text-sm text-muted-foreground flex items-center mt-1">
+                      <span className="mr-1">📍</span> {user.location}
+                    </p>
+                  )}
+                  {user.role && (
+                    <div className="mt-2">
+                      <span className="bg-primary/10 text-primary rounded-full px-3 py-1 text-xs">
+                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {user.bio && (
+                <div className="mt-4">
+                  <h3 className="text-lg font-semibold mb-2">About</h3>
+                  <p className="text-muted-foreground">{user.bio}</p>
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
+
+      {!isEditing && (
+        <Tabs defaultValue="education" className="w-full max-w-4xl mx-auto">
+          <TabsList className="grid grid-cols-3 mb-8">
+            <TabsTrigger value="education">Education</TabsTrigger>
+            <TabsTrigger value="experience">Experience</TabsTrigger>
+            <TabsTrigger value="skills">Skills & Interests</TabsTrigger>
+          </TabsList>
+          <TabsContent value="education">
+            <Card>
+              <CardHeader>
+                <CardTitle>Education</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ProfileEducation education={user.education} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="experience">
+            <Card>
+              <CardHeader>
+                <CardTitle>Experience</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ProfileExperience experience={user.experience} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="skills">
+            <Card>
+              <CardHeader>
+                <CardTitle>Skills & Interests</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ProfileSkills skills={user.skills} interests={user.interests} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
+
+      {isGuest && (
+        <div className="w-full max-w-4xl mx-auto text-center">
+          <Button asChild size="lg" className="mt-4">
+            <Link to="/register">Register to Connect</Link>
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

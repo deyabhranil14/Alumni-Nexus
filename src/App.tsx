@@ -13,6 +13,7 @@ import Mentorship from "@/pages/Mentorship";
 import Network from "@/pages/Network";
 import AIAssistant from "@/pages/AIAssistant";
 import Chat from "@/pages/Chat";
+import Events from "@/pages/Events";
 import AuthCallback from "@/pages/AuthCallback";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -37,6 +38,7 @@ function App() {
               <Route path="network" element={<Network />} />
               <Route path="assistant" element={<AIAssistant />} />
               <Route path="chat" element={<Chat />} />
+              <Route path="events" element={<Events />} />
               <Route path="auth/callback" element={<AuthCallback />} />
               <Route path="*" element={<NotFound />} />
             </Route>
