@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -45,7 +46,9 @@ export function EventForm({ userId, onSuccess }: EventFormProps) {
         date: data.date.toISOString(),
         created_by: userId
       });
+      
       if (error) throw error;
+      
       form.reset();
       onSuccess();
     } catch (error) {

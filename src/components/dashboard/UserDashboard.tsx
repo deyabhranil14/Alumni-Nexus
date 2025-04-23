@@ -7,16 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-interface Event {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  created_at: string;
-  created_by: string;
-  joined_at: string;
-}
+import { Event } from "@/types";
 
 interface Stats {
   unreadMessages: number;
@@ -27,10 +18,10 @@ interface Stats {
 
 export default function UserDashboard() {
   const { user, isGuest } = useAuth();
-  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
-  const [pastEvents, setPastEvents] = useState<any[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [pastEvents, setPastEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<Stats>({
     unreadMessages: 0,
     connections: 0,
     eventsJoined: 0,
@@ -50,19 +41,27 @@ export default function UserDashboard() {
     try {
       setLoading(true);
       const today = new Date().toISOString();
+      
       const { data, error } = await supabase
         .from('event_participants')
-        .select('joined_at, event_id, events!event_id(*)')
+        .select('joined_at, events(*, created_by(name))')
         .eq('user_id', user?.id)
         .order('joined_at', { ascending: false });
 
       if (error) throw error;
+      
       if (data) {
         const events = data
-          .map(item => ({ ...item.events, joined_at: item.joined_at }))
+          .map(item => ({
+            ...item.events,
+            creator_name: item.events.created_by?.name || 'Unknown',
+            joined_at: item.joined_at
+          }))
           .filter(event => !!event && event.date);
+        
         const upcoming = events.filter(event => event.date >= today);
         const past = events.filter(event => event.date < today);
+        
         setUpcomingEvents(upcoming);
         setPastEvents(past);
       }

@@ -10,18 +10,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { EventForm } from "@/components/events/EventForm";
 import { Separator } from "@/components/ui/separator";
-
-interface Event {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  created_at: string;
-  created_by: string | null;
-  creator_name?: string;
-  participants_count?: number;
-  is_joined?: boolean;
-}
+import { Event } from "@/types";
 
 export default function Events() {
   const { user, isGuest } = useAuth();
@@ -36,10 +25,11 @@ export default function Events() {
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      // Fetch all events (fixed for table)
+      
+      // Fetch all events
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
-        .select('*')
+        .select('*, created_by(name)')
         .order('date', { ascending: true });
 
       if (eventsError) throw eventsError;
@@ -49,55 +39,42 @@ export default function Events() {
         return;
       }
 
-      // Get creator names
-      const creatorIds = [...new Set(eventsData.map(event => event.created_by))].filter(Boolean);
-      let creatorNames: {[key: string]: string} = {};
-      if (creatorIds.length > 0) {
-        const { data: creatorsData } = await supabase
-          .from('users')
-          .select('id, name')
-          .in('id', creatorIds);
-        if (creatorsData) {
-          creatorsData.forEach(creator => {
-            creatorNames[creator.id] = creator.name;
-          });
-        }
-      }
-
       // Which events has the user joined?
       let userParticipations: {[key: string]: boolean} = {};
+      let participantCounts: {[key: string]: number} = {};
+      
       if (user && !isGuest) {
         const { data: participationsData } = await supabase
           .from('event_participants')
           .select('event_id')
           .eq('user_id', user.id);
+        
+        const { data: countData } = await supabase
+          .from('event_participants')
+          .select('event_id')
+          .group('event_id');
+        
         if (participationsData) {
           participationsData.forEach(p => {
-            userParticipations[p.event_id!] = true;
+            userParticipations[p.event_id] = true;
           });
         }
-      }
-
-      // Get participant counts
-      let participantCounts: {[key: string]: number} = {};
-      const { data: countData } = await supabase
-        .from('event_participants')
-        .select('event_id')
-      if (countData) {
-        countData.forEach(item => {
-          if (item.event_id) {
-            participantCounts[item.event_id] = (participantCounts[item.event_id] || 0) + 1;
-          }
-        });
+        
+        if (countData) {
+          countData.forEach(item => {
+            participantCounts[item.event_id] = Number(item.count);
+          });
+        }
       }
 
       // Combine all data
       const enrichedEvents = eventsData.map((event) => ({
         ...event,
-        creator_name: event.created_by ? (creatorNames[event.created_by] || 'Unknown') : 'Unknown',
+        creator_name: event.created_by?.name || 'Unknown',
         participants_count: participantCounts[event.id] || 0,
         is_joined: userParticipations[event.id] || false
       }));
+      
       setEvents(enrichedEvents);
     } catch (error) {
       console.error('Error fetching events:', error);

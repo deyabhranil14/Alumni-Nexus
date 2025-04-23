@@ -25,6 +25,20 @@ export type UserSkill = {
   level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
 };
 
+export type EventType = 'webinar' | 'workshop' | 'meetup' | 'conference' | 'other';
+
+export type Event = {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  created_at?: string | null;
+  created_by: string | null;
+  creator_name?: string;
+  participants_count?: number;
+  is_joined?: boolean;
+};
+
 export type User = {
   id: string;
   role: UserRole;
@@ -56,23 +70,7 @@ export type Mentorship = {
 };
 
 // Event types
-export type EventType = 'webinar' | 'workshop' | 'meetup' | 'conference' | 'other';
 
-export type Event = {
-  id: string;
-  title: string;
-  description: string;
-  type: EventType;
-  startDate: string;
-  endDate: string;
-  location: string;
-  isVirtual: boolean;
-  link?: string;
-  organizer: string;
-  image?: string;
-};
-
-// Post types
 export type PostType = 'discussion' | 'question' | 'announcement' | 'success_story';
 
 export type Post = {

@@ -53,7 +53,7 @@ const UserProfile: React.FC<UserProfileProps> = () => {
               <div className="flex items-center gap-4">
                 <Avatar className="h-24 w-24">
                   <AvatarImage
-                    src={user.profileImage || user.profile_image || ""}
+                    src={user.profileImage || ''}
                     alt={user.name || "User Avatar"}
                   />
                   <AvatarFallback>{user.name?.charAt(0) || "U"}</AvatarFallback>
@@ -74,7 +74,7 @@ const UserProfile: React.FC<UserProfileProps> = () => {
                     </div>
                   )}
                   <p className="text-sm text-muted-foreground mt-1">
-                    Joined: {user.joinDate || user.join_date || "---"}
+                    Joined: {user.joinDate}
                   </p>
                 </div>
               </div>
