@@ -1,3 +1,4 @@
+
 // User types
 export type UserRole = "admin" | "student" | "faculty" | "alumni" | "guest";
 
@@ -37,6 +38,13 @@ export type Event = {
   creator_name?: string;
   participants_count?: number;
   is_joined?: boolean;
+};
+
+export type EventParticipant = {
+  id: string;
+  event_id: string;
+  user_id: string;
+  joined_at: string;
 };
 
 export type User = {

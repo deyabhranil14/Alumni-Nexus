@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,51 +30,44 @@ export default function Events() {
       // Fetch all events
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
-        .select('*, created_by(name)')
+        .select('*, users!events_created_by_fkey(name)')
         .order('date', { ascending: true });
 
       if (eventsError) throw eventsError;
-      if (!eventsData) {
-        setEvents([]);
-        setLoading(false);
-        return;
-      }
-
-      // Which events has the user joined?
-      let userParticipations: {[key: string]: boolean} = {};
-      let participantCounts: {[key: string]: number} = {};
       
+      // Initialize event data with basic information
+      let enrichedEvents = eventsData?.map(event => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        date: event.date,
+        created_at: event.created_at,
+        created_by: event.created_by,
+        creator_name: event.users?.name || 'Unknown',
+        participants_count: 0,
+        is_joined: false
+      })) || [];
+
+      // If user is authenticated, check if they've joined any events
       if (user && !isGuest) {
-        const { data: participationsData } = await supabase
-          .from('event_participants')
-          .select('event_id')
-          .eq('user_id', user.id);
-        
-        const { data: countData } = await supabase
-          .from('event_participants')
-          .select('event_id')
-          .group('event_id');
-        
-        if (participationsData) {
-          participationsData.forEach(p => {
-            userParticipations[p.event_id] = true;
-          });
-        }
-        
-        if (countData) {
-          countData.forEach(item => {
-            participantCounts[item.event_id] = Number(item.count);
-          });
+        // Get user's joined events
+        for (const event of enrichedEvents) {
+          const { count } = await supabase
+            .from('event_participants')
+            .select('*', { count: 'exact', head: true })
+            .eq('event_id', event.id);
+            
+          const { data: userParticipation } = await supabase
+            .from('event_participants')
+            .select('*')
+            .eq('event_id', event.id)
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          event.participants_count = count || 0;
+          event.is_joined = !!userParticipation;
         }
       }
-
-      // Combine all data
-      const enrichedEvents = eventsData.map((event) => ({
-        ...event,
-        creator_name: event.created_by?.name || 'Unknown',
-        participants_count: participantCounts[event.id] || 0,
-        is_joined: userParticipations[event.id] || false
-      }));
       
       setEvents(enrichedEvents);
     } catch (error) {
@@ -89,25 +83,44 @@ export default function Events() {
       toast.error('Please sign in to join events');
       return;
     }
+    
     try {
       setJoinLoading(prev => ({ ...prev, [eventId]: true }));
       const event = events.find(e => e.id === eventId);
+      
       if (event?.is_joined) {
         // Leave event
-        const { error } = await supabase.from('event_participants').delete()
-          .eq('user_id', user.id).eq('event_id', eventId);
+        const { error } = await supabase
+          .from('event_participants')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('event_id', eventId);
+          
         if (error) throw error;
+        
         toast.success('You have left this event');
-        setEvents(events.map(e => e.id === eventId ? { ...e, is_joined: false, participants_count: Math.max(0, (e.participants_count || 0) - 1) } : e));
+        setEvents(events.map(e => 
+          e.id === eventId 
+            ? { ...e, is_joined: false, participants_count: Math.max(0, (e.participants_count || 0) - 1) } 
+            : e
+        ));
       } else {
         // Join event
-        const { error } = await supabase.from('event_participants').insert({
-          user_id: user.id,
-          event_id: eventId
-        });
+        const { error } = await supabase
+          .from('event_participants')
+          .insert({
+            user_id: user.id,
+            event_id: eventId
+          });
+          
         if (error) throw error;
+        
         toast.success('You have joined this event');
-        setEvents(events.map(e => e.id === eventId ? { ...e, is_joined: true, participants_count: (e.participants_count || 0) + 1 } : e));
+        setEvents(events.map(e => 
+          e.id === eventId 
+            ? { ...e, is_joined: true, participants_count: (e.participants_count || 0) + 1 }
+            : e
+        ));
       }
     } catch (error) {
       console.error('Error joining/leaving event:', error);

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,35 +31,39 @@ export default function UserDashboard() {
 
   useEffect(() => {
     if (user && !isGuest) {
-      fetchUserEvents();
+      fetchEvents();
       fetchUserStats();
     } else {
       setLoading(false);
     }
   }, [user, isGuest]);
 
-  const fetchUserEvents = async () => {
+  const fetchEvents = async () => {
     try {
       setLoading(true);
       const today = new Date().toISOString();
       
-      const { data, error } = await supabase
-        .from('event_participants')
-        .select('joined_at, events(*, created_by(name))')
-        .eq('user_id', user?.id)
-        .order('joined_at', { ascending: false });
+      // Get all events
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select('*, users!events_created_by_fkey(name)')
+        .order('date', { ascending: true });
 
-      if (error) throw error;
+      if (eventsError) throw eventsError;
       
-      if (data) {
-        const events = data
-          .map(item => ({
-            ...item.events,
-            creator_name: item.events.created_by?.name || 'Unknown',
-            joined_at: item.joined_at
-          }))
-          .filter(event => !!event && event.date);
+      if (eventsData) {
+        // Transform events data
+        const events = eventsData.map(event => ({
+          id: event.id,
+          title: event.title,
+          description: event.description,
+          date: event.date,
+          created_at: event.created_at,
+          created_by: event.created_by,
+          creator_name: event.users?.name || 'Unknown',
+        }));
         
+        // Split into upcoming and past events
         const upcoming = events.filter(event => event.date >= today);
         const past = events.filter(event => event.date < today);
         
@@ -66,27 +71,28 @@ export default function UserDashboard() {
         setPastEvents(past);
       }
     } catch (error) {
-      console.error('Error fetching user events:', error);
+      console.error('Error fetching events:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const fetchUserStats = async () => {
+    if (!user) return;
+    
     try {
-      const [messagesResponse, participantsResponse, mentorshipsResponse] = await Promise.all([
+      const [messagesResponse, mentorshipsResponse] = await Promise.all([
         supabase.from('messages').select('id', { count: 'exact', head: true })
-          .eq('receiver_id', user?.id).eq('read', false),
-        supabase.from('event_participants').select('id', { count: 'exact', head: true })
-          .eq('user_id', user?.id),
+          .eq('receiver_id', user.id).eq('read', false),
         supabase.from('mentorships').select('id', { count: 'exact', head: true })
-          .or(`mentor_id.eq.${user?.id},mentee_id.eq.${user?.id}`).eq('status', 'active')
+          .or(`mentor_id.eq.${user.id},mentee_id.eq.${user.id}`).eq('status', 'active')
       ]);
+      
       setStats({
-        unreadMessages: messagesResponse?.count || 0,
+        unreadMessages: messagesResponse.count || 0,
         connections: 0,
-        eventsJoined: participantsResponse?.count || 0,
-        mentorshipRelations: mentorshipsResponse?.count || 0
+        eventsJoined: 0,
+        mentorshipRelations: mentorshipsResponse.count || 0
       });
     } catch (error) {
       console.error('Error fetching user stats:', error);
@@ -147,14 +153,14 @@ export default function UserDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
-              Events Joined
+              Events
             </CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.eventsJoined}</div>
+            <div className="text-2xl font-bold">{upcomingEvents.length}</div>
             <p className="text-xs text-muted-foreground">
-              Total events you've signed up for
+              Upcoming events you might be interested in
             </p>
           </CardContent>
           <CardFooter>
@@ -218,7 +224,7 @@ export default function UserDashboard() {
                 <CardHeader>
                   <CardTitle>Upcoming Events</CardTitle>
                   <CardDescription>
-                    Events you've registered to attend
+                    Events happening in the future
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -262,7 +268,7 @@ export default function UserDashboard() {
                 <CardHeader>
                   <CardTitle>Past Events</CardTitle>
                   <CardDescription>
-                    Events you've attended
+                    Events that have already happened
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

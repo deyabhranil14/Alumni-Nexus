@@ -40,17 +40,23 @@ export function EventForm({ userId, onSuccess }: EventFormProps) {
   const onSubmit = async (data: EventFormValues) => {
     try {
       setIsSubmitting(true);
-      const { error } = await supabase.from('events').insert({
-        title: data.title,
-        description: data.description,
-        date: data.date.toISOString(),
-        created_by: userId
-      });
       
-      if (error) throw error;
+      // Create event
+      const { data: eventData, error: eventError } = await supabase
+        .from('events')
+        .insert({
+          title: data.title,
+          description: data.description,
+          date: data.date.toISOString(),
+          created_by: userId
+        })
+        .select('id');
+      
+      if (eventError) throw eventError;
       
       form.reset();
       onSuccess();
+      toast.success('Event created successfully');
     } catch (error) {
       console.error('Error creating event:', error);
       toast.error('Failed to create event');
