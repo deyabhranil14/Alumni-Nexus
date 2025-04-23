@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +11,20 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { EventForm } from "@/components/events/EventForm";
 import { Separator } from "@/components/ui/separator";
 import { Event } from "@/types";
+
+interface CountEventParticipantsParams {
+  event_id: string;
+}
+
+interface CheckEventParticipationParams {
+  p_event_id: string;
+  p_user_id: string;
+}
+
+interface JoinLeaveEventParams {
+  p_event_id: string;
+  p_user_id: string;
+}
 
 export default function Events() {
   const { user, isGuest } = useAuth();
@@ -76,9 +89,9 @@ export default function Events() {
       for (const event of processedEvents) {
         // Count participants using the RPC function
         const { data: count, error: countError } = await supabase
-          .rpc('count_event_participants', { 
+          .rpc<number, CountEventParticipantsParams>('count_event_participants', { 
             event_id: event.id 
-          } as Record<string, unknown>);
+          });
         
         if (!countError) {
           event.participants_count = count || 0;
@@ -87,10 +100,10 @@ export default function Events() {
         // Check if current user has joined using the RPC function
         if (user && !isGuest) {
           const { data: participation, error: participationError } = await supabase
-            .rpc('check_event_participation', { 
+            .rpc<boolean, CheckEventParticipationParams>('check_event_participation', { 
               p_event_id: event.id, 
               p_user_id: user.id 
-            } as Record<string, unknown>);
+            });
           
           if (!participationError) {
             event.is_joined = !!participation;
@@ -120,10 +133,10 @@ export default function Events() {
       if (event?.is_joined) {
         // Leave event using RPC function
         const { error } = await supabase
-          .rpc('leave_event', { 
+          .rpc<null, JoinLeaveEventParams>('leave_event', { 
             p_event_id: eventId, 
             p_user_id: user.id 
-          } as Record<string, unknown>);
+          });
           
         if (error) throw error;
         
@@ -136,10 +149,10 @@ export default function Events() {
       } else {
         // Join event using RPC function
         const { error } = await supabase
-          .rpc('join_event', { 
+          .rpc<null, JoinLeaveEventParams>('join_event', { 
             p_event_id: eventId, 
             p_user_id: user.id 
-          } as Record<string, unknown>);
+          });
           
         if (error) throw error;
         
