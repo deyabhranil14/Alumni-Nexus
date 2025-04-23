@@ -18,13 +18,8 @@ const UserProfile: React.FC<UserProfileProps> = () => {
   const { user, isGuest, updateUserProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
 
-  const handleEditProfile = () => {
-    setIsEditing(true);
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-  };
+  const handleEditProfile = () => setIsEditing(true);
+  const handleCancelEdit = () => setIsEditing(false);
 
   const handleSaveProfile = async (updatedData: any) => {
     const success = await updateUserProfile(updatedData);
@@ -33,9 +28,7 @@ const UserProfile: React.FC<UserProfileProps> = () => {
     }
   };
 
-  if (!user) {
-    return <div>Loading...</div>;
-  }
+  if (!user) return <div>Loading...</div>;
 
   return (
     <div className="container mx-auto mt-8 space-y-8">
@@ -50,16 +43,19 @@ const UserProfile: React.FC<UserProfileProps> = () => {
         </CardHeader>
         <CardContent className="grid gap-6">
           {isEditing ? (
-            <ProfileEditForm 
-              user={user} 
-              onSave={handleSaveProfile} 
-              onCancel={handleCancelEdit} 
+            <ProfileEditForm
+              user={user}
+              onSave={handleSaveProfile}
+              onCancel={handleCancelEdit}
             />
           ) : (
             <>
               <div className="flex items-center gap-4">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src={user.profileImage || ""} alt={user.name || "User Avatar"} />
+                  <AvatarImage
+                    src={user.profileImage || user.profile_image || ""}
+                    alt={user.name || "User Avatar"}
+                  />
                   <AvatarFallback>{user.name?.charAt(0) || "U"}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -77,9 +73,11 @@ const UserProfile: React.FC<UserProfileProps> = () => {
                       </span>
                     </div>
                   )}
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Joined: {user.joinDate || user.join_date || "---"}
+                  </p>
                 </div>
               </div>
-
               {user.bio && (
                 <div className="mt-4">
                   <h3 className="text-lg font-semibold mb-2">About</h3>

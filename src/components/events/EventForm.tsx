@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -18,9 +17,7 @@ import { cn } from "@/lib/utils";
 const eventFormSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
   description: z.string().min(20, "Description must be at least 20 characters"),
-  date: z.date({
-    required_error: "Event date is required",
-  }).refine((date) => date > new Date(), {
+  date: z.date({ required_error: "Event date is required" }).refine((date) => date > new Date(), {
     message: "Event date must be in the future",
   }),
 });
@@ -34,30 +31,21 @@ interface EventFormProps {
 
 export function EventForm({ userId, onSuccess }: EventFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-    },
+    defaultValues: { title: "", description: "" },
   });
 
   const onSubmit = async (data: EventFormValues) => {
     try {
       setIsSubmitting(true);
-      
-      const { error } = await supabase
-        .from('events')
-        .insert({
-          title: data.title,
-          description: data.description,
-          date: data.date.toISOString().split('T')[0], // Format as YYYY-MM-DD
-          created_by: userId,
-        });
-        
+      const { error } = await supabase.from('events').insert({
+        title: data.title,
+        description: data.description,
+        date: data.date.toISOString(),
+        created_by: userId
+      });
       if (error) throw error;
-      
       form.reset();
       onSuccess();
     } catch (error) {

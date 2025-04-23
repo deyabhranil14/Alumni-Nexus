@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -28,10 +27,10 @@ interface Stats {
 
 export default function UserDashboard() {
   const { user, isGuest } = useAuth();
-  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
-  const [pastEvents, setPastEvents] = useState<Event[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [pastEvents, setPastEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<Stats>({
+  const [stats, setStats] = useState({
     unreadMessages: 0,
     connections: 0,
     eventsJoined: 0,
@@ -50,37 +49,20 @@ export default function UserDashboard() {
   const fetchUserEvents = async () => {
     try {
       setLoading(true);
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Fetch events the user has joined
+      const today = new Date().toISOString();
       const { data, error } = await supabase
         .from('event_participants')
-        .select(`
-          joined_at,
-          events:event_id (
-            id, 
-            title, 
-            description, 
-            date, 
-            created_at,
-            created_by
-          )
-        `)
+        .select('joined_at, event_id, events!event_id(*)')
         .eq('user_id', user?.id)
         .order('joined_at', { ascending: false });
-        
+
       if (error) throw error;
-      
       if (data) {
-        const events = data.map(item => ({
-          ...item.events,
-          joined_at: item.joined_at
-        }));
-        
-        // Split into upcoming and past events
+        const events = data
+          .map(item => ({ ...item.events, joined_at: item.joined_at }))
+          .filter(event => !!event && event.date);
         const upcoming = events.filter(event => event.date >= today);
         const past = events.filter(event => event.date < today);
-        
         setUpcomingEvents(upcoming);
         setPastEvents(past);
       }
@@ -90,36 +72,22 @@ export default function UserDashboard() {
       setLoading(false);
     }
   };
-  
+
   const fetchUserStats = async () => {
     try {
       const [messagesResponse, participantsResponse, mentorshipsResponse] = await Promise.all([
-        // Count unread messages
-        supabase
-          .from('messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('receiver_id', user?.id)
-          .eq('read', false),
-          
-        // Count events joined
-        supabase
-          .from('event_participants')
-          .select('id', { count: 'exact', head: true })
+        supabase.from('messages').select('id', { count: 'exact', head: true })
+          .eq('receiver_id', user?.id).eq('read', false),
+        supabase.from('event_participants').select('id', { count: 'exact', head: true })
           .eq('user_id', user?.id),
-          
-        // Count mentorship relations
-        supabase
-          .from('mentorships')
-          .select('id', { count: 'exact', head: true })
-          .or(`mentor_id.eq.${user?.id},mentee_id.eq.${user?.id}`)
-          .eq('status', 'active')
+        supabase.from('mentorships').select('id', { count: 'exact', head: true })
+          .or(`mentor_id.eq.${user?.id},mentee_id.eq.${user?.id}`).eq('status', 'active')
       ]);
-      
       setStats({
-        unreadMessages: messagesResponse.count || 0,
-        connections: 0, // To be implemented when network connections are added
-        eventsJoined: participantsResponse.count || 0,
-        mentorshipRelations: mentorshipsResponse.count || 0
+        unreadMessages: messagesResponse?.count || 0,
+        connections: 0,
+        eventsJoined: participantsResponse?.count || 0,
+        mentorshipRelations: mentorshipsResponse?.count || 0
       });
     } catch (error) {
       console.error('Error fetching user stats:', error);
@@ -127,10 +95,8 @@ export default function UserDashboard() {
   };
 
   const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    const options: Intl.DateTimeFormatOptions = {
+      year: 'numeric', month: 'long', day: 'numeric'
     };
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
@@ -240,94 +206,114 @@ export default function UserDashboard() {
         </Card>
       </div>
 
-      <Tabs defaultValue="upcoming" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="upcoming">Upcoming Events</TabsTrigger>
-          <TabsTrigger value="past">Past Events</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="upcoming">
-          <Card>
-            <CardHeader>
-              <CardTitle>Upcoming Events</CardTitle>
-              <CardDescription>
-                Events you've registered to attend
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="space-y-2">
-                  {[1, 2].map(i => (
-                    <div key={i} className="animate-pulse h-16 bg-muted rounded-md" />
-                  ))}
-                </div>
-              ) : upcomingEvents.length > 0 ? (
-                <div className="space-y-4">
-                  {upcomingEvents.map(event => (
-                    <div key={event.id} className="flex items-center justify-between p-2 border rounded-md">
-                      <div>
-                        <h4 className="font-medium">{event.title}</h4>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Calendar className="h-3 w-3 mr-1" /> 
-                          {formatDate(event.date)}
+      <div className="grid gap-4 md:grid-cols-12">
+        <div className="md:col-span-9">
+          <Tabs defaultValue="upcoming" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="upcoming">Upcoming Events</TabsTrigger>
+              <TabsTrigger value="past">Past Events</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="upcoming">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upcoming Events</CardTitle>
+                  <CardDescription>
+                    Events you've registered to attend
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="space-y-2">
+                      {[1, 2].map(i => (
+                        <div key={i} className="animate-pulse h-16 bg-muted rounded-md" />
+                      ))}
+                    </div>
+                  ) : upcomingEvents.length > 0 ? (
+                    <div className="space-y-4">
+                      {upcomingEvents.map(event => (
+                        <div key={event.id} className="flex items-center justify-between p-2 border rounded-md">
+                          <div>
+                            <h4 className="font-medium">{event.title}</h4>
+                            <div className="flex items-center text-sm text-muted-foreground">
+                              <Calendar className="h-3 w-3 mr-1" /> 
+                              {formatDate(event.date)}
+                            </div>
+                          </div>
+                          <Button size="sm" variant="outline" asChild>
+                            <Link to={`/events?id=${event.id}`}>Details</Link>
+                          </Button>
                         </div>
-                      </div>
-                      <Button size="sm" variant="outline" asChild>
-                        <Link to={`/events?id=${event.id}`}>Details</Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground">No upcoming events</p>
+                      <Button asChild className="mt-2" variant="outline">
+                        <Link to="/events">Browse Events</Link>
                       </Button>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <p className="text-muted-foreground">No upcoming events</p>
-                  <Button asChild className="mt-2" variant="outline">
-                    <Link to="/events">Browse Events</Link>
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="past">
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="past">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Past Events</CardTitle>
+                  <CardDescription>
+                    Events you've attended
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="space-y-2">
+                      {[1, 2].map(i => (
+                        <div key={i} className="animate-pulse h-16 bg-muted rounded-md" />
+                      ))}
+                    </div>
+                  ) : pastEvents.length > 0 ? (
+                    <div className="space-y-4">
+                      {pastEvents.map(event => (
+                        <div key={event.id} className="flex items-center justify-between p-2 border rounded-md">
+                          <div>
+                            <h4 className="font-medium">{event.title}</h4>
+                            <div className="flex items-center text-sm text-muted-foreground">
+                              <Calendar className="h-3 w-3 mr-1" /> 
+                              {formatDate(event.date)}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground">No past events</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+        <div className="md:col-span-3">
           <Card>
             <CardHeader>
-              <CardTitle>Past Events</CardTitle>
-              <CardDescription>
-                Events you've attended
-              </CardDescription>
+              <CardTitle>Quick Tips</CardTitle>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="space-y-2">
-                  {[1, 2].map(i => (
-                    <div key={i} className="animate-pulse h-16 bg-muted rounded-md" />
-                  ))}
-                </div>
-              ) : pastEvents.length > 0 ? (
-                <div className="space-y-4">
-                  {pastEvents.map(event => (
-                    <div key={event.id} className="flex items-center justify-between p-2 border rounded-md">
-                      <div>
-                        <h4 className="font-medium">{event.title}</h4>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Calendar className="h-3 w-3 mr-1" /> 
-                          {formatDate(event.date)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <p className="text-muted-foreground">No past events</p>
-                </div>
-              )}
+              <ul className="list-disc pl-4 text-sm text-muted-foreground space-y-1">
+                <li>Complete your profile for better visibility.</li>
+                <li>Check upcoming events and join ones that interest you.</li>
+                <li>Connect with mentors or mentees for growth.</li>
+                <li>Message alumni or students for networking.</li>
+                <li>Stay active and check back often!</li>
+              </ul>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   );
 }

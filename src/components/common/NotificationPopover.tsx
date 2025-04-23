@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,46 +25,39 @@ export default function NotificationPopover() {
 
   useEffect(() => {
     if (!user || isGuest) return;
-    
     fetchNotifications();
-    
-    // Set up real-time subscription for new notifications
+    // Real-time: listen for notification inserts or update on "is_read"
     const channel = supabase
-      .channel("notifications")
+      .channel('notifications')
       .on(
-        "postgres_changes",
+        'postgres_changes',
         {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          const newNotification = payload.new as Notification;
-          setNotifications(prev => [newNotification, ...prev]);
-          setUnreadCount(prev => prev + 1);
+          const updatedNotification = payload.new as Notification;
+          fetchNotifications();
         }
       )
       .subscribe();
-      
     return () => {
       supabase.removeChannel(channel);
     };
   }, [user, isGuest]);
-  
+
   const fetchNotifications = async () => {
     if (!user) return;
-    
     try {
       const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
         .limit(10);
-        
       if (error) throw error;
-      
       if (data) {
         setNotifications(data);
         setUnreadCount(data.filter(n => !n.is_read).length);
@@ -74,7 +66,7 @@ export default function NotificationPopover() {
       console.error("Error fetching notifications:", error);
     }
   };
-  
+
   const handleNotificationClick = async (notification: Notification) => {
     try {
       if (!notification.is_read) {
@@ -100,7 +92,7 @@ export default function NotificationPopover() {
       console.error("Error marking notification as read:", error);
     }
   };
-  
+
   const markAllAsRead = async () => {
     try {
       const unreadIds = notifications
@@ -121,7 +113,7 @@ export default function NotificationPopover() {
       console.error("Error marking all notifications as read:", error);
     }
   };
-  
+
   const formatNotificationTime = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -139,7 +131,7 @@ export default function NotificationPopover() {
     
     return date.toLocaleDateString();
   };
-  
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "message":

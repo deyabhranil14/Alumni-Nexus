@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +17,7 @@ interface Event {
   description: string;
   date: string;
   created_at: string;
-  created_by: string;
+  created_by: string | null;
   creator_name?: string;
   participants_count?: number;
   is_joined?: boolean;
@@ -37,79 +36,68 @@ export default function Events() {
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      // Fetch all events
+      // Fetch all events (fixed for table)
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
         .select('*')
         .order('date', { ascending: true });
-      
-      if (eventsError) {
-        throw eventsError;
-      }
-      
+
+      if (eventsError) throw eventsError;
       if (!eventsData) {
         setEvents([]);
         setLoading(false);
         return;
       }
-      
+
       // Get creator names
       const creatorIds = [...new Set(eventsData.map(event => event.created_by))].filter(Boolean);
       let creatorNames: {[key: string]: string} = {};
-      
       if (creatorIds.length > 0) {
         const { data: creatorsData } = await supabase
           .from('users')
           .select('id, name')
           .in('id', creatorIds);
-          
         if (creatorsData) {
           creatorsData.forEach(creator => {
             creatorNames[creator.id] = creator.name;
           });
         }
       }
-      
-      // Check which events the user has joined
+
+      // Which events has the user joined?
       let userParticipations: {[key: string]: boolean} = {};
-      
       if (user && !isGuest) {
         const { data: participationsData } = await supabase
           .from('event_participants')
           .select('event_id')
           .eq('user_id', user.id);
-          
         if (participationsData) {
           participationsData.forEach(p => {
             userParticipations[p.event_id!] = true;
           });
         }
       }
-      
+
       // Get participant counts
-      const participantCounts: {[key: string]: number} = {};
-      
+      let participantCounts: {[key: string]: number} = {};
       const { data: countData } = await supabase
         .from('event_participants')
-        .select('event_id, count')
-        .count('id');
-        
+        .select('event_id')
       if (countData) {
         countData.forEach(item => {
           if (item.event_id) {
-            participantCounts[item.event_id] = Number(item.count);
+            participantCounts[item.event_id] = (participantCounts[item.event_id] || 0) + 1;
           }
         });
       }
-      
+
       // Combine all data
-      const enrichedEvents = eventsData.map(event => ({
+      const enrichedEvents = eventsData.map((event) => ({
         ...event,
-        creator_name: event.created_by ? creatorNames[event.created_by] : 'Unknown',
+        creator_name: event.created_by ? (creatorNames[event.created_by] || 'Unknown') : 'Unknown',
         participants_count: participantCounts[event.id] || 0,
         is_joined: userParticipations[event.id] || false
       }));
-      
       setEvents(enrichedEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -124,48 +112,25 @@ export default function Events() {
       toast.error('Please sign in to join events');
       return;
     }
-    
     try {
       setJoinLoading(prev => ({ ...prev, [eventId]: true }));
-      
       const event = events.find(e => e.id === eventId);
       if (event?.is_joined) {
         // Leave event
-        const { error } = await supabase
-          .from('event_participants')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('event_id', eventId);
-          
+        const { error } = await supabase.from('event_participants').delete()
+          .eq('user_id', user.id).eq('event_id', eventId);
         if (error) throw error;
-        
         toast.success('You have left this event');
-        
-        // Update local state
-        setEvents(events.map(e => 
-          e.id === eventId 
-            ? { ...e, is_joined: false, participants_count: Math.max(0, (e.participants_count || 0) - 1) } 
-            : e
-        ));
+        setEvents(events.map(e => e.id === eventId ? { ...e, is_joined: false, participants_count: Math.max(0, (e.participants_count || 0) - 1) } : e));
       } else {
         // Join event
-        const { error } = await supabase
-          .from('event_participants')
-          .insert({
-            user_id: user.id,
-            event_id: eventId
-          });
-          
+        const { error } = await supabase.from('event_participants').insert({
+          user_id: user.id,
+          event_id: eventId
+        });
         if (error) throw error;
-        
         toast.success('You have joined this event');
-        
-        // Update local state
-        setEvents(events.map(e => 
-          e.id === eventId 
-            ? { ...e, is_joined: true, participants_count: (e.participants_count || 0) + 1 } 
-            : e
-        ));
+        setEvents(events.map(e => e.id === eventId ? { ...e, is_joined: true, participants_count: (e.participants_count || 0) + 1 } : e));
       }
     } catch (error) {
       console.error('Error joining/leaving event:', error);
@@ -182,11 +147,7 @@ export default function Events() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
   const canCreateEvent = user && !isGuest && user.role === 'alumni';
@@ -204,7 +165,6 @@ export default function Events() {
               Join events organized by alumni and faculty
             </p>
           </div>
-          
           {canCreateEvent && (
             <Dialog>
               <DialogTrigger asChild>

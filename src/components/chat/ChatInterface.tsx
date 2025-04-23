@@ -37,38 +37,31 @@ export default function ChatInterface() {
         },
         (payload) => {
           const newMessage = payload.new as unknown as MessageType;
-          
           // Add the new message to the messages array if it's for the active chat
           if (activeChat === newMessage.sender_id) {
             setMessages(prev => [...prev, newMessage]);
-            
             // Mark message as read immediately if the chat is active
-            supabase
-              .from('messages')
+            supabase.from('messages')
               .update({ read: true })
               .eq('id', newMessage.id)
               .then(() => {
                 console.log("Message marked as read:", newMessage.id);
-              })
-              .catch(err => {
+              }, (err) => {
                 console.error("Error marking message as read:", err);
               });
           } else {
-            // Update the unread count for the connection
-            setConnections(prev => 
-              prev.map(conn => 
-                conn.id === newMessage.sender_id 
-                  ? { 
-                      ...conn, 
-                      unreadCount: conn.unreadCount + 1,
-                      lastMessage: newMessage.content,
-                      lastMessageTime: newMessage.timestamp
-                    }
+            setConnections(prev =>
+              prev.map(conn =>
+                conn.id === newMessage.sender_id
+                  ? {
+                    ...conn,
+                    unreadCount: conn.unreadCount + 1,
+                    lastMessage: newMessage.content,
+                    lastMessageTime: newMessage.timestamp
+                  }
                   : conn
               )
             );
-            
-            // Show notification
             toast.info(`New message from ${
               connections.find(c => c.id === newMessage.sender_id)?.name || 'Contact'
             }`);
