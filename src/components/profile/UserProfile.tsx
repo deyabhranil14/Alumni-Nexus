@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,9 +6,9 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ProfileEducation from "@/components/profile/ProfileEducation";
-import ProfileExperience from "@/components/profile/ProfileExperience";
-import ProfileSkills from "@/components/profile/ProfileSkills";
+import { ProfileEducation } from "@/components/profile/ProfileEducation";
+import { ProfileExperience } from "@/components/profile/ProfileExperience";
+import { ProfileSkills } from "@/components/profile/ProfileSkills";
 
 interface UserProfileProps {
   // Add props here if needed
@@ -105,7 +104,7 @@ const UserProfile: React.FC<UserProfileProps> = () => {
                 <CardTitle>Education</CardTitle>
               </CardHeader>
               <CardContent>
-                <ProfileEducation education={user.education} />
+                <ProfileEducation education={user.education} isOwnProfile={true} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -115,7 +114,7 @@ const UserProfile: React.FC<UserProfileProps> = () => {
                 <CardTitle>Experience</CardTitle>
               </CardHeader>
               <CardContent>
-                <ProfileExperience experience={user.experience} />
+                <ProfileExperience experience={user.experience} isOwnProfile={true} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -125,7 +124,7 @@ const UserProfile: React.FC<UserProfileProps> = () => {
                 <CardTitle>Skills & Interests</CardTitle>
               </CardHeader>
               <CardContent>
-                <ProfileSkills skills={user.skills} interests={user.interests} />
+                <ProfileSkills skills={user.skills} isOwnProfile={true} />
               </CardContent>
             </Card>
           </TabsContent>

@@ -92,7 +92,7 @@ export default function Events() {
       const { data: countData } = await supabase
         .from('event_participants')
         .select('event_id, count')
-        .group('event_id');
+        .count('id');
         
       if (countData) {
         countData.forEach(item => {
