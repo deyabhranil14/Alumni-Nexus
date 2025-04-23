@@ -91,9 +91,9 @@ export default function Events() {
       for (const event of processedEvents) {
         // Count participants using the RPC function
         const { data: count, error: countError } = await supabase
-          .rpc<number>('count_event_participants', { 
+          .rpc<number, CountEventParticipantsParams>('count_event_participants', { 
             event_id: event.id 
-          } as any);
+          });
         
         if (!countError && count !== null) {
           event.participants_count = count;
@@ -102,10 +102,10 @@ export default function Events() {
         // Check if current user has joined
         if (user && !isGuest) {
           const { data: participation, error: participationError } = await supabase
-            .rpc<boolean>('check_event_participation', { 
+            .rpc<boolean, CheckEventParticipationParams>('check_event_participation', { 
               p_event_id: event.id, 
               p_user_id: user.id 
-            } as any);
+            });
           
           if (!participationError) {
             event.is_joined = !!participation;
@@ -135,10 +135,10 @@ export default function Events() {
       if (event?.is_joined) {
         // Leave event
         const { error } = await supabase
-          .rpc<void>('leave_event', { 
+          .rpc<void, JoinLeaveEventParams>('leave_event', { 
             p_event_id: eventId, 
             p_user_id: user.id 
-          } as any);
+          });
           
         if (error) throw error;
         
@@ -151,10 +151,10 @@ export default function Events() {
       } else {
         // Join event
         const { error } = await supabase
-          .rpc<void>('join_event', { 
+          .rpc<void, JoinLeaveEventParams>('join_event', { 
             p_event_id: eventId, 
             p_user_id: user.id 
-          } as any);
+          });
           
         if (error) throw error;
         
