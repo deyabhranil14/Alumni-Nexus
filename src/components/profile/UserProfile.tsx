@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -87,7 +88,7 @@ const UserProfile: React.FC<UserProfileProps> = () => {
         <CardContent className="grid gap-4">
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={user.avatar_url || ""} alt={user.name || "User Avatar"} />
+              <AvatarImage src={user.profileImage || ""} alt={user.name || "User Avatar"} />
               <AvatarFallback>{user.name?.charAt(0) || "U"}</AvatarFallback>
             </Avatar>
             <div>
