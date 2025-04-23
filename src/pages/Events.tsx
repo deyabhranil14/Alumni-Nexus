@@ -13,6 +13,7 @@ import { EventForm } from "@/components/events/EventForm";
 import { Separator } from "@/components/ui/separator";
 import { Event } from "@/types";
 
+// Define proper parameter types for RPC functions
 type CountEventParticipantsParams = {
   event_id: string;
 }
@@ -90,21 +91,21 @@ export default function Events() {
       for (const event of processedEvents) {
         // Count participants using the RPC function
         const { data: count, error: countError } = await supabase
-          .rpc('count_event_participants', { 
+          .rpc<number>('count_event_participants', { 
             event_id: event.id 
-          } as CountEventParticipantsParams);
+          } as any);
         
         if (!countError && count !== null) {
-          event.participants_count = count as number;
+          event.participants_count = count;
         }
         
         // Check if current user has joined
         if (user && !isGuest) {
           const { data: participation, error: participationError } = await supabase
-            .rpc('check_event_participation', { 
+            .rpc<boolean>('check_event_participation', { 
               p_event_id: event.id, 
               p_user_id: user.id 
-            } as CheckEventParticipationParams);
+            } as any);
           
           if (!participationError) {
             event.is_joined = !!participation;
@@ -134,10 +135,10 @@ export default function Events() {
       if (event?.is_joined) {
         // Leave event
         const { error } = await supabase
-          .rpc('leave_event', { 
+          .rpc<void>('leave_event', { 
             p_event_id: eventId, 
             p_user_id: user.id 
-          } as JoinLeaveEventParams);
+          } as any);
           
         if (error) throw error;
         
@@ -150,10 +151,10 @@ export default function Events() {
       } else {
         // Join event
         const { error } = await supabase
-          .rpc('join_event', { 
+          .rpc<void>('join_event', { 
             p_event_id: eventId, 
             p_user_id: user.id 
-          } as JoinLeaveEventParams);
+          } as any);
           
         if (error) throw error;
         
