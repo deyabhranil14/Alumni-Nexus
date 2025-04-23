@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,16 +12,16 @@ import { EventForm } from "@/components/events/EventForm";
 import { Separator } from "@/components/ui/separator";
 import { Event } from "@/types";
 
-interface CountEventParticipantsParams {
+type CountEventParticipantsParams = {
   event_id: string;
 }
 
-interface CheckEventParticipationParams {
+type CheckEventParticipationParams = {
   p_event_id: string;
   p_user_id: string;
 }
 
-interface JoinLeaveEventParams {
+type JoinLeaveEventParams = {
   p_event_id: string;
   p_user_id: string;
 }
@@ -88,20 +87,20 @@ export default function Events() {
       
       // Now get participant counts for all events
       for (const event of processedEvents) {
-        // Count participants using the RPC function
+        // Count participants using the RPC function with proper type parameters
         const { data: count, error: countError } = await supabase
-          .rpc<number, CountEventParticipantsParams>('count_event_participants', { 
+          .rpc('count_event_participants', { 
             event_id: event.id 
           });
         
         if (!countError && count !== null) {
-          event.participants_count = count;
+          event.participants_count = count as number;
         }
         
-        // Check if current user has joined using the RPC function
+        // Check if current user has joined using the RPC function with proper type parameters
         if (user && !isGuest) {
           const { data: participation, error: participationError } = await supabase
-            .rpc<boolean, CheckEventParticipationParams>('check_event_participation', { 
+            .rpc('check_event_participation', { 
               p_event_id: event.id, 
               p_user_id: user.id 
             });
@@ -132,9 +131,9 @@ export default function Events() {
       const event = events.find(e => e.id === eventId);
       
       if (event?.is_joined) {
-        // Leave event using RPC function
+        // Leave event using RPC function with proper type parameters
         const { error } = await supabase
-          .rpc<void, JoinLeaveEventParams>('leave_event', { 
+          .rpc('leave_event', { 
             p_event_id: eventId, 
             p_user_id: user.id 
           });
@@ -148,9 +147,9 @@ export default function Events() {
             : e
         ));
       } else {
-        // Join event using RPC function
+        // Join event using RPC function with proper type parameters
         const { error } = await supabase
-          .rpc<void, JoinLeaveEventParams>('join_event', { 
+          .rpc('join_event', { 
             p_event_id: eventId, 
             p_user_id: user.id 
           });
