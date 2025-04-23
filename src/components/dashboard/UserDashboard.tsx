@@ -46,21 +46,45 @@ export default function UserDashboard() {
       // Get all events
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
-        .select('*, users!events_created_by_fkey(name)')
+        .select('id, title, description, date, created_at, created_by')
         .order('date', { ascending: true });
 
       if (eventsError) throw eventsError;
       
       if (eventsData) {
+        // For each event, get the creator's name
+        const eventsWithCreatorNames = await Promise.all(
+          eventsData.map(async (event) => {
+            let creatorName = 'Unknown';
+            
+            if (event.created_by) {
+              const { data: userData, error: userError } = await supabase
+                .from('users')
+                .select('name')
+                .eq('id', event.created_by)
+                .single();
+                
+              if (!userError && userData) {
+                creatorName = userData.name;
+              }
+            }
+            
+            return {
+              ...event,
+              creator_name: creatorName
+            };
+          })
+        );
+        
         // Transform events data
-        const events = eventsData.map(event => ({
+        const events: Event[] = eventsWithCreatorNames.map(event => ({
           id: event.id,
           title: event.title,
           description: event.description,
           date: event.date,
           created_at: event.created_at,
           created_by: event.created_by,
-          creator_name: event.users?.name || 'Unknown',
+          creator_name: event.creator_name,
         }));
         
         // Split into upcoming and past events

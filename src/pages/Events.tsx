@@ -30,46 +30,73 @@ export default function Events() {
       // Fetch all events
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
-        .select('*, users!events_created_by_fkey(name)')
+        .select('id, title, description, date, created_at, created_by')
         .order('date', { ascending: true });
 
       if (eventsError) throw eventsError;
       
-      // Initialize event data with basic information
-      let enrichedEvents = eventsData?.map(event => ({
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        date: event.date,
-        created_at: event.created_at,
-        created_by: event.created_by,
-        creator_name: event.users?.name || 'Unknown',
-        participants_count: 0,
-        is_joined: false
-      })) || [];
-
-      // If user is authenticated, check if they've joined any events
-      if (user && !isGuest) {
-        // Get user's joined events
-        for (const event of enrichedEvents) {
-          const { count } = await supabase
-            .from('event_participants')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', event.id);
+      if (!eventsData) {
+        setEvents([]);
+        return;
+      }
+      
+      // For each event, get the creator's name
+      const processedEvents = await Promise.all(eventsData.map(async (event) => {
+        // Get creator name
+        let creatorName = 'Unknown';
+        if (event.created_by) {
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('name')
+            .eq('id', event.created_by)
+            .single();
             
-          const { data: userParticipation } = await supabase
-            .from('event_participants')
-            .select('*')
-            .eq('event_id', event.id)
-            .eq('user_id', user.id)
-            .maybeSingle();
-
+          if (!userError && userData) {
+            creatorName = userData.name;
+          }
+        }
+        
+        // Initialize event data
+        const enrichedEvent: Event = {
+          id: event.id,
+          title: event.title,
+          description: event.description,
+          date: event.date,
+          created_at: event.created_at,
+          created_by: event.created_by,
+          creator_name: creatorName,
+          participants_count: 0,
+          is_joined: false
+        };
+        
+        return enrichedEvent;
+      }));
+      
+      // Now get participant counts for all events
+      for (const event of processedEvents) {
+        // Count participants
+        const { count, error: countError } = await supabase
+          .rpc('count_event_participants', { event_id: event.id });
+        
+        if (!countError) {
           event.participants_count = count || 0;
-          event.is_joined = !!userParticipation;
+        }
+        
+        // Check if current user has joined
+        if (user && !isGuest) {
+          const { data: participation, error: participationError } = await supabase
+            .rpc('check_event_participation', { 
+              p_event_id: event.id, 
+              p_user_id: user.id 
+            });
+          
+          if (!participationError) {
+            event.is_joined = !!participation;
+          }
         }
       }
       
-      setEvents(enrichedEvents);
+      setEvents(processedEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
       toast.error('Failed to load events');
@@ -91,10 +118,10 @@ export default function Events() {
       if (event?.is_joined) {
         // Leave event
         const { error } = await supabase
-          .from('event_participants')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('event_id', eventId);
+          .rpc('leave_event', { 
+            p_event_id: eventId, 
+            p_user_id: user.id 
+          });
           
         if (error) throw error;
         
@@ -107,10 +134,9 @@ export default function Events() {
       } else {
         // Join event
         const { error } = await supabase
-          .from('event_participants')
-          .insert({
-            user_id: user.id,
-            event_id: eventId
+          .rpc('join_event', { 
+            p_event_id: eventId, 
+            p_user_id: user.id 
           });
           
         if (error) throw error;
