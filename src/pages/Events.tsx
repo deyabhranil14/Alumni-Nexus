@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,18 +90,18 @@ export default function Events() {
       for (const event of processedEvents) {
         // Count participants using the RPC function
         const { data: count, error: countError } = await supabase
-          .rpc<number, CountEventParticipantsParams>('count_event_participants', { 
+          .rpc<number>('count_event_participants', { 
             event_id: event.id 
           });
         
-        if (!countError) {
-          event.participants_count = count || 0;
+        if (!countError && count !== null) {
+          event.participants_count = count;
         }
         
         // Check if current user has joined using the RPC function
         if (user && !isGuest) {
           const { data: participation, error: participationError } = await supabase
-            .rpc<boolean, CheckEventParticipationParams>('check_event_participation', { 
+            .rpc<boolean>('check_event_participation', { 
               p_event_id: event.id, 
               p_user_id: user.id 
             });
@@ -133,7 +134,7 @@ export default function Events() {
       if (event?.is_joined) {
         // Leave event using RPC function
         const { error } = await supabase
-          .rpc<null, JoinLeaveEventParams>('leave_event', { 
+          .rpc<void>('leave_event', { 
             p_event_id: eventId, 
             p_user_id: user.id 
           });
@@ -149,7 +150,7 @@ export default function Events() {
       } else {
         // Join event using RPC function
         const { error } = await supabase
-          .rpc<null, JoinLeaveEventParams>('join_event', { 
+          .rpc<void>('join_event', { 
             p_event_id: eventId, 
             p_user_id: user.id 
           });
