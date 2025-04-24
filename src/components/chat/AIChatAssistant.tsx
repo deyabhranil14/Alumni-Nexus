@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Bot, User, Loader2 } from "lucide-react";
+import { Send, Bot, User as UserIcon, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -71,22 +71,24 @@ const AIChatAssistant = () => {
         }))
         .filter((item) => item.query || item.response);
 
-      const response = await supabase.functions.invoke("ai-assistant", {
+      // Call the AI assistant edge function
+      const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: {
           query: userMessage.content,
           history: history,
         },
       });
 
-      if (response.error) {
-        throw new Error(response.error.message || "Failed to get response");
+      if (error) {
+        throw new Error(error.message || "Failed to get response");
       }
 
+      // Add AI response to messages
       setMessages((prev) => [
         ...prev,
         {
           id: `ai-${Date.now()}`,
-          content: response.data.response,
+          content: data.response,
           sender: "ai",
           timestamp: new Date(),
         },
@@ -95,6 +97,7 @@ const AIChatAssistant = () => {
       console.error("Error getting AI response:", error);
       toast.error("Failed to get response from AI assistant");
       
+      // Add error message
       setMessages((prev) => [
         ...prev,
         {
@@ -132,7 +135,7 @@ const AIChatAssistant = () => {
               >
                 <Avatar className={message.sender === "user" ? "bg-rajasthan-saffron" : "bg-rajasthan-blue dark:bg-rajasthan-turquoise"}>
                   {message.sender === "user" ? (
-                    <User className="h-5 w-5 text-white" />
+                    <UserIcon className="h-5 w-5 text-white" />
                   ) : (
                     <Bot className="h-5 w-5 text-white" />
                   )}

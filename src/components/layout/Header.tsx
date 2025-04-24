@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,6 @@ import {
   Menu,
   MessageSquare,
   LogOut,
-  Settings,
   User,
   LogIn,
   UserPlus,
@@ -36,6 +36,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ThemeToggle } from "../ui/theme-toggle";
 
 export function Header() {
   const { user, logout, isGuest } = useAuth();
@@ -144,6 +145,9 @@ export function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          {/* Theme Toggle */}
+          <ThemeToggle />
+          
           {!isMobile && (
             <form className="relative mr-2">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -215,12 +219,6 @@ export function Header() {
                     <Link to="/profile" className="cursor-pointer">
                       <User className="h-4 w-4 mr-2" />
                       Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings" className="cursor-pointer">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Settings
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

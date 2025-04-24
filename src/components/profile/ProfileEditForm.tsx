@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { uploadFile } from "@/integrations/supabase/storage";
 
 interface ProfileEditFormProps {
   user: User;
@@ -30,6 +31,7 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
   const [coverImageFile, setCoverImageFile] = React.useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = React.useState<string | null>(user.profileImage || null);
   const [coverImagePreview, setCoverImagePreview] = React.useState<string | null>(user.coverImage || null);
+  const [isUploading, setIsUploading] = React.useState(false);
   
   const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,45 +59,46 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
   
   const onSubmit = async (data: any) => {
     try {
+      setIsUploading(true);
       let profileImageUrl = user.profileImage;
       let coverImageUrl = user.coverImage;
       
       // Upload profile image if changed
       if (profileImageFile) {
-        const fileExt = profileImageFile.name.split('.').pop();
-        const fileName = `${user.id}-profile-${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, profileImageFile);
+        try {
+          const fileExt = profileImageFile.name.split('.').pop();
+          const fileName = `${user.id}-profile-${Date.now()}.${fileExt}`;
           
-        if (uploadError) throw uploadError;
-        
-        // Get public URL
-        const { data: publicUrlData } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(fileName);
+          const uploadResult = await uploadFile('avatars', fileName, profileImageFile);
           
-        profileImageUrl = publicUrlData.publicUrl;
+          if (!uploadResult.success) {
+            throw new Error("Failed to upload profile image");
+          }
+          
+          profileImageUrl = uploadResult.publicUrl || '';
+        } catch (error) {
+          console.error("Profile image upload error:", error);
+          toast.error("Failed to upload profile image");
+        }
       }
       
       // Upload cover image if changed
       if (coverImageFile) {
-        const fileExt = coverImageFile.name.split('.').pop();
-        const fileName = `${user.id}-cover-${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('covers')
-          .upload(fileName, coverImageFile);
+        try {
+          const fileExt = coverImageFile.name.split('.').pop();
+          const fileName = `${user.id}-cover-${Date.now()}.${fileExt}`;
           
-        if (uploadError) throw uploadError;
-        
-        // Get public URL
-        const { data: publicUrlData } = supabase.storage
-          .from('covers')
-          .getPublicUrl(fileName);
+          const uploadResult = await uploadFile('covers', fileName, coverImageFile);
           
-        coverImageUrl = publicUrlData.publicUrl;
+          if (!uploadResult.success) {
+            throw new Error("Failed to upload cover image");
+          }
+          
+          coverImageUrl = uploadResult.publicUrl || '';
+        } catch (error) {
+          console.error("Cover image upload error:", error);
+          toast.error("Failed to upload cover image");
+        }
       }
       
       // Save updated data
@@ -109,6 +112,8 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
     } catch (error) {
       console.error("Error uploading images:", error);
       toast.error("Failed to upload images");
+    } finally {
+      setIsUploading(false);
     }
   };
   
@@ -184,11 +189,11 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
       </div>
       
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isUploading}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : "Save Changes"}
+        <Button type="submit" disabled={isSubmitting || isUploading}>
+          {isUploading || isSubmitting ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </form>

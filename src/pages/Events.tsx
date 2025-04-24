@@ -93,7 +93,7 @@ export default function Events() {
         const { data: count, error: countError } = await supabase
           .rpc('count_event_participants', { 
             event_id: event.id 
-          } as CountEventParticipantsParams);
+          } as any);
         
         if (!countError && count !== null) {
           event.participants_count = Number(count);
@@ -105,7 +105,7 @@ export default function Events() {
             .rpc('check_event_participation', { 
               p_event_id: event.id, 
               p_user_id: user.id 
-            } as CheckEventParticipationParams);
+            } as any);
           
           if (!participationError) {
             event.is_joined = !!participation;
@@ -138,7 +138,7 @@ export default function Events() {
           .rpc('leave_event', { 
             p_event_id: eventId, 
             p_user_id: user.id 
-          } as JoinLeaveEventParams);
+          } as any);
           
         if (error) throw error;
         
@@ -154,7 +154,7 @@ export default function Events() {
           .rpc('join_event', { 
             p_event_id: eventId, 
             p_user_id: user.id 
-          } as JoinLeaveEventParams);
+          } as any);
           
         if (error) throw error;
         
