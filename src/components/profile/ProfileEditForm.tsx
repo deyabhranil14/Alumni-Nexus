@@ -9,6 +9,7 @@ import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { uploadFile } from "@/integrations/supabase/storage";
+import { Loader2 } from "lucide-react";
 
 interface ProfileEditFormProps {
   user: User;
@@ -22,8 +23,8 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
       name: user.name || "",
       bio: user.bio || "",
       location: user.location || "",
-      profileImage: user.profileImage || "",
-      coverImage: user.coverImage || "",
+      profileImage: "",
+      coverImage: "",
     }
   });
   
@@ -60,14 +61,36 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
   const onSubmit = async (data: any) => {
     try {
       setIsUploading(true);
-      let profileImageUrl = user.profileImage;
-      let coverImageUrl = user.coverImage;
+      let profileImageUrl = user.profileImage || '';
+      let coverImageUrl = user.coverImage || '';
+      
+      console.log("Starting profile update with images:", { 
+        hasProfileImage: !!profileImageFile, 
+        hasCoverImage: !!coverImageFile 
+      });
       
       // Upload profile image if changed
       if (profileImageFile) {
         try {
+          console.log("Uploading profile image:", profileImageFile.name);
           const fileExt = profileImageFile.name.split('.').pop();
           const fileName = `${user.id}-profile-${Date.now()}.${fileExt}`;
+          
+          // Ensure bucket exists
+          try {
+            const { data: bucketData, error: bucketError } = await supabase
+              .storage.getBucket('avatars');
+              
+            if (bucketError) {
+              console.log("Creating avatars bucket");
+              await supabase.storage.createBucket('avatars', {
+                public: true,
+                fileSizeLimit: 1024 * 1024 * 5
+              });
+            }
+          } catch (error) {
+            console.error("Error checking bucket:", error);
+          }
           
           const uploadResult = await uploadFile('avatars', fileName, profileImageFile);
           
@@ -75,6 +98,7 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
             throw new Error("Failed to upload profile image");
           }
           
+          console.log("Profile image uploaded successfully:", uploadResult.publicUrl);
           profileImageUrl = uploadResult.publicUrl || '';
         } catch (error) {
           console.error("Profile image upload error:", error);
@@ -85,8 +109,25 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
       // Upload cover image if changed
       if (coverImageFile) {
         try {
+          console.log("Uploading cover image:", coverImageFile.name);
           const fileExt = coverImageFile.name.split('.').pop();
           const fileName = `${user.id}-cover-${Date.now()}.${fileExt}`;
+          
+          // Ensure bucket exists
+          try {
+            const { data: bucketData, error: bucketError } = await supabase
+              .storage.getBucket('covers');
+              
+            if (bucketError) {
+              console.log("Creating covers bucket");
+              await supabase.storage.createBucket('covers', {
+                public: true,
+                fileSizeLimit: 1024 * 1024 * 10
+              });
+            }
+          } catch (error) {
+            console.error("Error checking bucket:", error);
+          }
           
           const uploadResult = await uploadFile('covers', fileName, coverImageFile);
           
@@ -94,6 +135,7 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
             throw new Error("Failed to upload cover image");
           }
           
+          console.log("Cover image uploaded successfully:", uploadResult.publicUrl);
           coverImageUrl = uploadResult.publicUrl || '';
         } catch (error) {
           console.error("Cover image upload error:", error);
@@ -103,16 +145,23 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
       
       // Save updated data
       const updatedData = {
-        ...data,
+        name: data.name,
+        bio: data.bio || '',
+        location: data.location || '',
         profileImage: profileImageUrl,
         coverImage: coverImageUrl
       };
+      
+      console.log("Saving updated profile data:", {
+        ...updatedData,
+        profileImage: updatedData.profileImage ? '(has image)' : '(no image)',
+        coverImage: updatedData.coverImage ? '(has image)' : '(no image)'
+      });
       
       onSave(updatedData);
     } catch (error) {
       console.error("Error uploading images:", error);
       toast.error("Failed to upload images");
-    } finally {
       setIsUploading(false);
     }
   };
@@ -189,11 +238,16 @@ export function ProfileEditForm({ user, onSave, onCancel }: ProfileEditFormProps
       </div>
       
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isUploading}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isUploading || isSubmitting}>
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting || isUploading}>
-          {isUploading || isSubmitting ? "Saving..." : "Save Changes"}
+          {isUploading || isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : "Save Changes"}
         </Button>
       </div>
     </form>

@@ -222,6 +222,23 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  {isGuest && (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link to="/login" className="cursor-pointer">
+                          <LogIn className="h-4 w-4 mr-2" />
+                          Sign In
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/register" className="cursor-pointer">
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Register
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="h-4 w-4 mr-2" />
                     Log out

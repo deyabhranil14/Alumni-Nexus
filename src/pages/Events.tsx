@@ -13,21 +13,6 @@ import { EventForm } from "@/components/events/EventForm";
 import { Separator } from "@/components/ui/separator";
 import { Event } from "@/types";
 
-// Define proper parameter types for RPC functions
-type CountEventParticipantsParams = {
-  event_id: string;
-}
-
-type CheckEventParticipationParams = {
-  p_event_id: string;
-  p_user_id: string;
-}
-
-type JoinLeaveEventParams = {
-  p_event_id: string;
-  p_user_id: string;
-}
-
 export default function Events() {
   const { user, isGuest } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);

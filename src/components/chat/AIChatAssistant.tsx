@@ -71,6 +71,8 @@ const AIChatAssistant = () => {
         }))
         .filter((item) => item.query || item.response);
 
+      console.log("Sending request to AI assistant with query:", inputValue);
+      
       // Call the AI assistant edge function
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: {
@@ -80,8 +82,16 @@ const AIChatAssistant = () => {
       });
 
       if (error) {
+        console.error("Error from edge function:", error);
         throw new Error(error.message || "Failed to get response");
       }
+
+      if (!data || !data.response) {
+        console.error("Invalid response format:", data);
+        throw new Error("Invalid response from AI assistant");
+      }
+
+      console.log("AI response received:", data.response);
 
       // Add AI response to messages
       setMessages((prev) => [
