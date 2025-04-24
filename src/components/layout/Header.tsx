@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -22,7 +21,6 @@ import {
   Search,
   Bell,
   Menu,
-  MessageSquare,
   LogOut,
   User,
   LogIn,
@@ -34,9 +32,9 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ThemeToggle } from "../ui/theme-toggle";
+import NotificationPopover from "../common/NotificationPopover";
 
 export function Header() {
   const { user, logout, isGuest } = useAuth();
@@ -161,38 +159,7 @@ export function Header() {
 
           {user ? (
             <>
-              <Button
-                variant="ghost"
-                size="icon"
-                asChild
-                className="relative"
-                aria-label="Messages"
-              >
-                <Link to="/chat">
-                  <MessageSquare className="h-5 w-5" />
-                  <Badge
-                    variant="secondary"
-                    className="absolute -top-1 -right-1 px-1 min-w-[18px] h-[18px] flex items-center justify-center text-xs"
-                  >
-                    0
-                  </Badge>
-                </Link>
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative"
-                aria-label="Notifications"
-              >
-                <Bell className="h-5 w-5" />
-                <Badge
-                  variant="secondary"
-                  className="absolute -top-1 -right-1 px-1 min-w-[18px] h-[18px] flex items-center justify-center text-xs"
-                >
-                  0
-                </Badge>
-              </Button>
+              <NotificationPopover />
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
